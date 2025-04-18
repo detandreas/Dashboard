@@ -851,7 +851,7 @@ def build_portfolio_section() -> html.Div:
             html.Div(
                 [
                     html.H6(
-                        "Μέγιστη Απόδοση",
+                        "Maximum Performance",
                         style={
                             "color": COLORS["text_secondary"],
                             "marginBottom": "10px",
@@ -867,7 +867,7 @@ def build_portfolio_section() -> html.Div:
             html.Div(
                 [
                     html.H6(
-                        "Ελάχιστη Απόδοση",
+                        "Minimum Performance",
                         style={
                             "color": COLORS["text_secondary"],
                             "marginBottom": "10px",
@@ -883,7 +883,7 @@ def build_portfolio_section() -> html.Div:
             html.Div(
                 [
                     html.H6(
-                        "Τρέχουσα Απόδοση",
+                        "Current Performance",
                         style={
                             "color": COLORS["text_secondary"],
                             "marginBottom": "10px",

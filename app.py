@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import yfinance as yf
 import dash_bootstrap_components as dbc
-import dash_table
+from dash import dash_table
 
 from buys import buys
 from Dollar_cost_average import DCA

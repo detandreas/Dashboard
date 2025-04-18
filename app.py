@@ -223,7 +223,7 @@ app.layout = html.Div(
         # Header ----------------------------------------------------------------
         html.Div(
             [
-                html.H1("Andreas's Investment Dashboard",
+                html.H1("Andreas's Portfolio Tracker",
                         style={"fontWeight": "600", "margin": "0"}),
                 html.P(
                     "Track your investments, analyze returns, and make informed decisions",

@@ -172,7 +172,7 @@ add_zero(fig_port_yield)
 
 app = dash.Dash(
     __name__,
-    title="Andreas's Investment Dashboard",
+    title="Andreas's Portfolio Tracker",
     meta_tags=[{"name": "viewport",
                 "content": "width=device-width, initial-scale=1"}],
     external_stylesheets=[dbc.themes.BOOTSTRAP],
@@ -224,7 +224,7 @@ app.layout = html.Div(
         # Header ----------------------------------------------------------------
         html.Div(
             [
-                html.H1("Andreas's Investment Dashboard",
+                html.H1("Andreas's Portfolio Tracker",
                         style={"fontWeight": "600", "margin": "0"}),
                 html.P(
                     "Track your investments, analyze returns, and make informed decisions",

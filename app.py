@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import yfinance as yf
 import dash_bootstrap_components as dbc
+import dash_table
 
 from buys import buys
 from Dollar_cost_average import DCA
@@ -32,7 +33,7 @@ Dashboard – two overall views
 # CONFIG --------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-TRADES_XLSX = os.getenv("DASH_FILE_PATH", "Trades.xlsx")
+TRADES_XLSX = os.getenv("DASH_FILE_PATH", "F:\\FINANCING\\Trades.xlsx")
 TRACKED = {
     "VUAA.L": "VUAA.EU",
     "EQAC.SW": "EQAC.EU",
@@ -171,7 +172,7 @@ add_zero(fig_port_yield)
 
 app = dash.Dash(
     __name__,
-    title="Andreas's Portfolio Tracker",
+    title="Andreas's Investment Dashboard",
     meta_tags=[{"name": "viewport",
                 "content": "width=device-width, initial-scale=1"}],
     external_stylesheets=[dbc.themes.BOOTSTRAP],
@@ -223,7 +224,7 @@ app.layout = html.Div(
         # Header ----------------------------------------------------------------
         html.Div(
             [
-                html.H1("Andreas's Portfolio Tracker",
+                html.H1("Andreas's Investment Dashboard",
                         style={"fontWeight": "600", "margin": "0"}),
                 html.P(
                     "Track your investments, analyze returns, and make informed decisions",
@@ -253,6 +254,10 @@ app.layout = html.Div(
                                     "label": "📊 Portfolio Overview",
                                     "value": "PORT",
                                 },
+                                {"label": "📜 Trades History",             
+                                 "value": "TRADES"
+                                
+                                }
                             ],
                             value="TICKERS",
                             clearable=False,
@@ -577,6 +582,47 @@ def build_cards(info: dict) -> html.Div:
         ],
         style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"},
     )
+    
+def build_trades_section() -> html.Div:
+    # Φορτώνουμε το αρχείο trades, το ταξινομούμε κατά Date
+    df = pd.read_excel(TRADES_XLSX)
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.sort_values("Date" , ascending=False)
+    
+    # 2) Διώξε τις στήλες Number & Date
+    df = df.drop(columns=["Number", "Date"])
+    df.rename(columns={df.columns[0]: "Date"}, inplace=True)
+    df['Date'] = df['Date'].dt.date
+
+
+    
+
+    # Χτίζουμε το DataTable
+    table = dash_table.DataTable(
+        columns=[{"name": col, "id": col} for col in df.columns],
+        data=df.to_dict("records"),
+        sort_action="native",
+        page_size=20,
+        style_table={"overflowX": "auto"},
+        style_header={
+            "backgroundColor": COLORS["card_bg"],
+            "color": COLORS["text_primary"],
+            "fontWeight": "bold"
+        },
+        style_cell={
+            "backgroundColor": COLORS["background"],
+            "color": COLORS["text_primary"],
+            "textAlign": "left",
+            "padding": "5px"
+        },
+    )
+
+    return html.Div([
+        html.H2("Trades History", 
+                style={"textAlign": "center", "color": COLORS["accent"], "marginBottom": "20px"}),
+        table
+    ], style={"padding": "0 2rem", "maxWidth": "1400px", "margin": "0 auto"})
+
 
 
 def build_ticker_section(ticker: str) -> html.Div:
@@ -881,7 +927,9 @@ def build_portfolio_section() -> html.Div:
 def render_content(view):
     if view == "PORT":
         return build_portfolio_section()
-    # default TICKERS view
+    elif view == "TRADES":
+        return build_trades_section()
+    # Default: TICKERS
     return html.Div(
         [
             build_ticker_section("VUAA.EU"),

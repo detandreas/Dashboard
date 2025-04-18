@@ -247,7 +247,7 @@ app.layout = html.Div(
                             id="view-dd",
                             options=[
                                 {
-                                    "label": "🔍 Tickers (VUAA, EQAC, USD)",
+                                    "label": "📉 Tickers (VUAA, EQAC, USD)",
                                     "value": "TICKERS",
                                 },
                                 {

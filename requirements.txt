@@ -5,3 +5,4 @@ yfinance
 plotly
 gunicorn
 openpyxl
+dash_table

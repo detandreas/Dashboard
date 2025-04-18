@@ -390,6 +390,21 @@ app.index_string = '''
         <title>{%title%}</title>
         {%favicon%}
         {%css%}
+        <!-- Open Graph for rich link preview -->
+        <meta property="og:type"        content="website" />
+        <meta property="og:title"       content="Andreas's Portfolio Tracker" />
+        <meta property="og:description" content="Track your investments, analyze returns, and make informed decisions" />
+        <meta property="og:url"         content="https://andreas-investment-dashboard.onrender.com" />
+        <meta property="og:image"       content="https://andreas-investment-dashboard.onrender.com/assets/preview.png" />
+        <meta property="og:image:width"  content="1200" />
+        <meta property="og:image:height" content="630" />
+
+        <!-- Twitter Card -->
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content="Andreas's Portfolio Tracker" />
+        <meta name="twitter:description" content="Track your investments, analyze returns, and make informed decisions" />
+        <meta name="twitter:image"       content="https://andreas-investment-dashboard.onrender.com/assets/preview.png" />
+
         <style>
             body {
                 background-color: #0a1929;

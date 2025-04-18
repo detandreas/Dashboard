@@ -33,7 +33,7 @@ Dashboard – two overall views
 # CONFIG --------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-TRADES_XLSX = os.getenv("DASH_FILE_PATH", "F:\\FINANCING\\Trades.xlsx")
+TRADES_XLSX = os.getenv("DASH_FILE_PATH", "Trades.xlsx")
 TRACKED = {
     "VUAA.L": "VUAA.EU",
     "EQAC.SW": "EQAC.EU",

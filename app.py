@@ -37,8 +37,8 @@ Dashboard – two overall views
 # CONFIG --------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-TRADES_XLSX = os.getenv("DASH_FILE_PATH", "/Users/andreaspapathanasioy/Documents/FINANCE/Trades.xlsx")
-FINANCE_XLSX = "/Users/andreaspapathanasioy/Documents/FINANCE/Book3.xlsx"
+TRADES_XLSX = os.getenv("DASH_FILE_PATH", "Trades.xlsx")
+FINANCE_XLSX = "Book3.xlsx"
 TRACKED = {
     "VUAA.L": "VUAA.EU",
     "EQAC.SW": "EQAC.EU",
@@ -1045,4 +1045,5 @@ def render_dashboard_summary(view):
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8050, use_reloader=False)
+
 

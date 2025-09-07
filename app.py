@@ -1,6 +1,7 @@
 import logging
+from datetime import datetime
 import dash
-from dash import html
+from dash import html, dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
@@ -70,45 +71,231 @@ class DashboardApplication:
             external_stylesheets=[dbc.themes.BOOTSTRAP],
             suppress_callback_exceptions=True
         )
-
+        
         app.layout = self._create_main_layout()
-
+        
+        # Add custom CSS for sidebar styling
+        app.index_string = '''
+        <!DOCTYPE html>
+        <html>
+            <head>
+                {%metas%}
+                <title>{%title%}</title>
+                {%favicon%}
+                {%css%}
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: 'Roboto', 'Segoe UI', 'Helvetica Neue', sans-serif;
+                    }
+                    
+                    .app-container {
+                        display: flex;
+                        min-height: 100vh;
+                        background-color: #0A0A0A;
+                    }
+                    
+                    .sidebar {
+                        width: 220px;
+                        background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+                        border-right: 2px solid #333;
+                        position: fixed;
+                        height: 100vh;
+                        overflow-y: auto;
+                        box-shadow: 4px 0 12px rgba(0,0,0,0.3);
+                    }
+                    
+                    .sidebar-header {
+                        padding: 25px 20px;
+                        border-bottom: 1px solid #333;
+                        background: linear-gradient(135deg, #2979FF 0%, #1976D2 100%);
+                    }
+                    
+                    .sidebar-title {
+                        color: white;
+                        font-size: 1.4rem;
+                        font-weight: 600;
+                        margin: 0;
+                        text-align: center;
+                    }
+                    
+                    .sidebar-subtitle {
+                        color: rgba(255,255,255,0.8);
+                        font-size: 0.85rem;
+                        margin: 5px 0 0 0;
+                        text-align: center;
+                    }
+                    
+                    .nav-menu {
+                        padding: 20px 0;
+                    }
+                    
+                    .nav-item {
+                        display: flex;
+                        align-items: center;
+                        padding: 12px 20px;
+                        color: #CCCCCC;
+                        text-decoration: none;
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        border: none;
+                        background: none;
+                        width: 100%;
+                        text-align: left;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        border-left: 3px solid transparent;
+                    }
+                    
+                    .nav-item:hover {
+                        background-color: #252525;
+                        color: #2979FF;
+                        border-left-color: #2979FF;
+                    }
+                    
+                    .nav-item.active {
+                        background-color: #2979FF20;
+                        color: #2979FF;
+                        border-left-color: #2979FF;
+                        font-weight: 600;
+                    }
+                    
+                    .main-content {
+                        margin-left: 220px;
+                        flex: 1;
+                        background-color: #0A0A0A;
+                        min-height: 100vh;
+                    }
+                    
+                    .content-header {
+                        background: linear-gradient(135deg, #1E1E1E 0%, #121212 100%);
+                        color: white;
+                        padding: 30px 40px;
+                        border-bottom: 2px solid #2979FF;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    }
+                    
+                    .content-body {
+                        padding: 30px 40px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+                    
+                    .page-title {
+                        font-size: 2.2rem;
+                        font-weight: 600;
+                        margin: 0;
+                        color: white;
+                    }
+                    
+                    .page-subtitle {
+                        font-size: 1.1rem;
+                        margin: 8px 0 0 0;
+                        opacity: 0.9;
+                        color: #CCCCCC;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .sidebar {
+                            width: 200px;
+                        }
+                        .main-content {
+                            margin-left: 200px;
+                        }
+                        .content-body {
+                            padding: 20px;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                {%app_entry%}
+                <footer>
+                    {%config%}
+                    {%scripts%}
+                    {%renderer%}
+                </footer>
+            </body>
+        </html>
+        '''
+        
         return app
     
     def _create_main_layout(self) -> html.Div:
         """Create the main application layout with sidebar."""
-        nav_items = [
-            {"id": "tickers", "icon": "📈", "label": "Individual Tickers"},
-            {"id": "portfolio", "icon": "📊", "label": "Portfolio Overview"},
-            {"id": "trades", "icon": "📋", "label": "Trading History"},
-            {"id": "finances", "icon": "💰", "label": "Personal Finances"},
-        ]
-
         return html.Div([
             # Sidebar Navigation
-            self.ui_factory.create_sidebar(nav_items),
-
+            self._create_sidebar(),
+            
             # Main Content Area
             html.Div([
                 # Page Header
                 html.Div(id="page-header"),
-
+                
                 # Content Body
                 html.Div([
                     # Dynamic Summary Cards
                     html.Div(id="dashboard-summary"),
-
+                    
                     # Main Content
                     html.Div(id="main-content", style={"marginTop": "20px"}),
-
+                    
                     # Footer
-                    self.ui_factory.create_footer(),
-                ], className="content-body"),
-
-            ], className="main-content"),
-
+                    self._create_footer()
+                ], className="content-body")
+                
+            ], className="main-content")
+            
         ], className="app-container")
-
+    
+    def _create_sidebar(self) -> html.Div:
+        """Create fixed sidebar navigation."""
+        nav_items = [
+            {"id": "tickers", "icon": "📈", "label": "Individual Tickers"},
+            {"id": "portfolio", "icon": "📊", "label": "Portfolio Overview"},
+            {"id": "trades", "icon": "📋", "label": "Trading History"},
+            {"id": "finances", "icon": "💰", "label": "Personal Finances"}
+        ]
+        
+        return html.Div([
+            # Sidebar Header
+            html.Div([
+                html.H1("Portfolio Tracker", className="sidebar-title"),
+                html.P("Investment Analytics", className="sidebar-subtitle")
+            ], className="sidebar-header"),
+            
+            # Navigation Menu
+            html.Div([
+                html.Button([
+                    html.Span(f"{item['icon']}", style={"marginRight": "10px", "fontSize": "1.1rem"}),
+                    html.Span(item['label'], style={"fontSize": "0.95rem"})
+                ], 
+                id=f"nav-{item['id']}", 
+                className="nav-item",
+                n_clicks=0
+                ) for item in nav_items
+            ], className="nav-menu"),
+            
+            # Store for active page
+            dcc.Store(id="active-page", data="tickers")
+            
+        ], className="sidebar")
+    
+    def _create_footer(self) -> html.Footer:
+        """Create application footer."""
+        return html.Footer([
+            html.P(
+                "Data powered by Yahoo Finance • Real-time updates • Professional Analytics",
+                style={
+                    "textAlign": "center",
+                    "color": self.config.ui.colors["text_secondary"],
+                    "padding": "30px",
+                    "fontSize": "0.9rem"
+                }
+            )
+        ])
+    
     def _register_callbacks(self):
         """Register all Dash callbacks."""
         
@@ -190,7 +377,7 @@ class DashboardApplication:
                 return self.page_factory.create_page(page_name).render()
             except Exception as e:
                 self.logger.error(f"Error rendering page {page_name}: {e}")
-                return self.ui_factory.create_error_content(str(e))
+                return self._create_error_content(str(e))
         
         @self.app.callback(
             Output("dashboard-summary", "children"),
@@ -204,10 +391,69 @@ class DashboardApplication:
             
             try:
                 portfolio = self.portfolio_service.get_portfolio_snapshot()
-                return self.ui_factory.create_portfolio_summary(portfolio)
+                return self._create_summary_section(portfolio)
             except Exception as e:
                 self.logger.error(f"Error creating summary: {e}")
                 return html.Div()
+    
+    def _create_summary_section(self, portfolio) -> html.Div:
+        """Create dashboard summary section with invested metric."""
+        return html.Div([
+            html.H2("Portfolio Dashboard", style={
+                "textAlign": "center",
+                "color": self.config.ui.colors["accent"],
+                "marginTop": "10px",
+                "marginBottom": "20px"
+            }),
+            
+            html.Div([
+                self.ui_factory.create_metric_card(
+                    "Last Updated",
+                    datetime.now().strftime("%d %b %Y, %H:%M")
+                ),
+                self.ui_factory.create_metric_card(
+                    "Invested",
+                    f"€{portfolio.total_metrics.invested:.2f}",
+                    self.config.ui.colors["text_primary"]
+                ),
+                self.ui_factory.create_metric_card(
+                    "Total Portfolio Value",
+                    f"€{portfolio.total_metrics.current_value:.2f}",
+                    self.config.ui.colors["accent"]
+                ),
+                self.ui_factory.create_metric_card(
+                    "Total P&L",
+                    f"€{portfolio.total_metrics.profit_absolute:.2f}",
+                    self.config.ui.colors["green"] if portfolio.total_metrics.is_profitable else self.config.ui.colors["red"]
+                ),
+                self.ui_factory.create_metric_card(
+                    "Overall Return",
+                    f"{portfolio.total_metrics.return_percentage:.2f}%",
+                    self.config.ui.colors["green"] if portfolio.total_metrics.return_percentage >= 0 else self.config.ui.colors["red"]
+                )
+            ], style={
+                "display": "flex",
+                "justifyContent": "center",
+                "flexWrap": "wrap"
+            })
+        ])
+    
+    def _create_error_content(self, error_message: str) -> html.Div:
+        """Create error content display."""
+        return html.Div([
+            html.H3("Application Error", style={
+                "color": self.config.ui.colors["red"],
+                "textAlign": "center"
+            }),
+            html.P(f"An error occurred: {error_message}", style={
+                "textAlign": "center",
+                "color": self.config.ui.colors["text_secondary"]
+            }),
+            html.P("Please check the logs for more details.", style={
+                "textAlign": "center",
+                "color": self.config.ui.colors["text_secondary"]
+            })
+        ], style=self.config.ui.card_style)
     
     def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8050):
         """Run the dashboard application."""

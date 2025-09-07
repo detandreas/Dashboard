@@ -1,0 +1,122 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #0A0A0A;
+}
+
+.sidebar {
+    width: 220px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+    border-right: 2px solid #333;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.3);
+}
+
+.sidebar-header {
+    padding: 25px 20px;
+    border-bottom: 1px solid #333;
+    background: none;
+}
+
+.sidebar-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+}
+
+.sidebar-subtitle {
+    color: rgba(255,255,255,0.8);
+    font-size: 0.85rem;
+    margin: 5px 0 0 0;
+    text-align: center;
+}
+
+.nav-menu {
+    padding: 20px 0;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #CCCCCC;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+    background-color: #252525;
+    color: #2979FF;
+    border-left-color: #2979FF;
+}
+
+.nav-item.active {
+    background-color: #2979FF20;
+    color: #2979FF;
+    border-left-color: #2979FF;
+    font-weight: 600;
+}
+
+.main-content {
+    margin-left: 220px;
+    flex: 1;
+    background-color: #0A0A0A;
+    min-height: 100vh;
+}
+
+.content-header {
+    background: linear-gradient(135deg, #1E1E1E 0%, #121212 100%);
+    color: white;
+    padding: 30px 40px;
+    border-bottom: 2px solid #2979FF;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.content-body {
+    padding: 30px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    margin: 8px 0 0 0;
+    opacity: 0.9;
+    color: #CCCCCC;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+    .main-content {
+        margin-left: 200px;
+    }
+    .content-body {
+        padding: 20px;
+    }
+}

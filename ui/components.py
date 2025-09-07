@@ -1,9 +1,14 @@
+from datetime import datetime
 from dash import html, dcc
 import plotly.graph_objects as go
 from typing import Optional, List
 import logging
 
-from models.portfolio import TickerData, PerformanceMetrics
+from models.portfolio import (
+    TickerData,
+    PerformanceMetrics,
+    PortfolioSnapshot,
+)
 from services.calculation_service import StandardCalculationService
 from config.settings import Config
 
@@ -270,3 +275,109 @@ class UIComponentFactory:
             "border": "1px solid #333333",
             "marginBottom": "20px"
         })
+
+    # ------------------------------------------------------------------
+    # Layout components
+
+    def create_sidebar(self, nav_items: List[dict]) -> html.Div:
+        """Create the sidebar navigation component."""
+        return html.Div([
+            # Sidebar Header
+            html.Div([
+                html.H1(
+                    "Portfolio Tracker",
+                    className="sidebar-title",
+                    style={"color": self.colors["accent"]},
+                ),
+                html.P("Investment Analytics", className="sidebar-subtitle"),
+            ], className="sidebar-header"),
+
+            # Navigation Menu
+            html.Div([
+                html.Button([
+                    html.Span(
+                        f"{item['icon']}",
+                        style={"marginRight": "10px", "fontSize": "1.1rem"},
+                    ),
+                    html.Span(item["label"], style={"fontSize": "0.95rem"}),
+                ], id=f"nav-{item['id']}", className="nav-item", n_clicks=0)
+                for item in nav_items
+            ], className="nav-menu"),
+
+            # Store for active page
+            dcc.Store(id="active-page", data="tickers"),
+        ], className="sidebar")
+
+    def create_footer(self) -> html.Footer:
+        """Create application footer component."""
+        return html.Footer([
+            html.P(
+                "Data powered by Yahoo Finance • Real-time updates • Professional Analytics",
+                style={
+                    "textAlign": "center",
+                    "color": self.colors["text_secondary"],
+                    "padding": "30px",
+                    "fontSize": "0.9rem",
+                },
+            )
+        ])
+
+    def create_error_content(self, error_message: str) -> html.Div:
+        """Create standardized error display component."""
+        return html.Div([
+            html.H3(
+                "Application Error",
+                style={"color": self.colors["red"], "textAlign": "center"},
+            ),
+            html.P(
+                f"An error occurred: {error_message}",
+                style={"textAlign": "center", "color": self.colors["text_secondary"]},
+            ),
+            html.P(
+                "Please check the logs for more details.",
+                style={"textAlign": "center", "color": self.colors["text_secondary"]},
+            ),
+        ], style=self.config.ui.card_style)
+
+    def create_portfolio_summary(self, portfolio: PortfolioSnapshot) -> html.Div:
+        """Create dashboard summary section for the portfolio page."""
+        return html.Div([
+            html.H2(
+                "Portfolio Dashboard",
+                style={
+                    "textAlign": "center",
+                    "color": self.colors["accent"],
+                    "marginTop": "10px",
+                    "marginBottom": "20px",
+                },
+            ),
+            html.Div([
+                self.create_metric_card(
+                    "Last Updated", datetime.now().strftime("%d %b %Y, %H:%M")
+                ),
+                self.create_metric_card(
+                    "Invested",
+                    f"€{portfolio.total_metrics.invested:.2f}",
+                    self.colors["text_primary"],
+                ),
+                self.create_metric_card(
+                    "Total Portfolio Value",
+                    f"€{portfolio.total_metrics.current_value:.2f}",
+                    self.colors["accent"],
+                ),
+                self.create_metric_card(
+                    "Total P&L",
+                    f"€{portfolio.total_metrics.profit_absolute:.2f}",
+                    self.colors["green"]
+                    if portfolio.total_metrics.is_profitable
+                    else self.colors["red"],
+                ),
+                self.create_metric_card(
+                    "Overall Return",
+                    f"{portfolio.total_metrics.return_percentage:.2f}%",
+                    self.colors["green"]
+                    if portfolio.total_metrics.return_percentage >= 0
+                    else self.colors["red"],
+                ),
+            ], style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"}),
+        ])

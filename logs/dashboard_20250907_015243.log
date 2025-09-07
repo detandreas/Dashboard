@@ -1,0 +1,30 @@
+2025-09-07 01:52:43 | root | INFO | setup_logging:55 | Logging configured - Level: INFO, File: logs/dashboard_20250907_015243.log
+2025-09-07 01:52:43 | __main__ | INFO | __init__:38 | Dashboard application initialized successfully
+2025-09-07 01:52:43 | __main__ | INFO | run:241 | Starting dashboard server on 0.0.0.0:8050
+2025-09-07 01:52:43 | dash.dash | INFO | run:2254 | Dash is running on http://0.0.0.0:8050/
+
+2025-09-07 01:53:29 | services.portfolio_service | INFO | _build_portfolio_snapshot:31 | Building portfolio snapshot
+2025-09-07 01:53:29 | __main__ | INFO | render_page_content:162 | Rendering page: tickers
+2025-09-07 01:53:29 | services.portfolio_service | INFO | _build_portfolio_snapshot:31 | Building portfolio snapshot
+2025-09-07 01:53:29 | services.data_service | INFO | load_trades:55 | Successfully loaded 96 trades
+2025-09-07 01:53:29 | services.data_service | INFO | load_trades:55 | Successfully loaded 96 trades
+2025-09-07 01:53:29 | services.data_service | INFO | get_price_history:75 | Downloading data for VUAA.L
+2025-09-07 01:53:29 | services.data_service | INFO | get_price_history:75 | Downloading data for VUAA.L
+2025-09-07 01:53:30 | services.data_service | INFO | get_price_history:75 | Downloading data for EQAC.SW
+2025-09-07 01:53:30 | services.data_service | INFO | get_price_history:75 | Downloading data for EQAC.SW
+2025-09-07 01:53:30 | services.data_service | INFO | get_price_history:75 | Downloading data for EUR=X
+2025-09-07 01:53:30 | services.data_service | INFO | get_price_history:75 | Downloading data for EUR=X
+2025-09-07 01:53:31 | services.data_service | INFO | get_price_history:96 | Aligned data to 313 common dates
+2025-09-07 01:53:31 | services.data_service | INFO | get_price_history:96 | Aligned data to 313 common dates
+2025-09-07 01:53:31 | services.data_service | INFO | validate_data_integrity:123 | Data integrity validation passed
+2025-09-07 01:53:31 | services.data_service | INFO | validate_data_integrity:123 | Data integrity validation passed
+2025-09-07 01:53:31 | services.data_service | INFO | load_trades:55 | Successfully loaded 96 trades
+2025-09-07 01:53:31 | services.portfolio_service | INFO | _build_portfolio_snapshot:65 | Portfolio snapshot built with 3 tickers
+2025-09-07 01:53:31 | services.data_service | INFO | load_trades:55 | Successfully loaded 96 trades
+2025-09-07 01:53:31 | services.portfolio_service | INFO | _build_portfolio_snapshot:65 | Portfolio snapshot built with 3 tickers
+2025-09-07 01:53:39 | __main__ | INFO | render_page_content:162 | Rendering page: portfolio
+2025-09-07 01:53:45 | __main__ | INFO | render_page_content:162 | Rendering page: finances
+2025-09-07 01:59:49 | __main__ | INFO | render_page_content:162 | Rendering page: tickers
+2025-09-07 02:01:08 | __main__ | INFO | render_page_content:162 | Rendering page: portfolio
+2025-09-07 02:01:17 | __main__ | INFO | render_page_content:162 | Rendering page: trades
+2025-09-07 02:01:25 | __main__ | INFO | render_page_content:162 | Rendering page: finances

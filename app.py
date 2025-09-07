@@ -12,6 +12,28 @@ from ui.components import UIComponentFactory
 from ui.pages import PageFactory
 from utils.logging_config import setup_logging
 
+"""
+Dashboard – four overall views
+=============================
+* **Dropdown** με 4 επιλογές:
+  1. **Tickers (VUAA, EQAC, USD)** → εμφανίζει το ένα κάτω απ' το άλλο:
+     - κάρτες Invested/Current/Profit/Return για κάθε ticker
+     - γράφημα Price + DCA + Buys
+  2. **Portfolio** → εμφανίζει συνοπτικές κάρτες χαρτοφυλακίου και δύο διαγράμματα:
+     - Profit curve (ETF + USD)
+     - Yield % curve (Profit / Invested ETFs)
+  3. **Trades History** --> εμφανιζει εναν καταλογο με ολα τα trades 
+        που εχουν πραγματοποιηθει
+  4. **Personal Finances** --> Εμφανιζει διαγραμματα που αφορουν¨
+      - Το Εισοδημα σου
+      - Τα εξοδα σου
+      - Τις επενδυσεις σου
+      - Συνολικο διαγραμμα
+
+
+* Στις κάρτες portfolio: Invested = κεφάλαιο μόνο ETF, Profit = P/L ETF + USD.
+"""
+
 class DashboardApplication:
     """Main dashboard application orchestrator."""
     

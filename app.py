@@ -309,10 +309,13 @@ class DashboardApplication:
             use_reloader=False
         )
 
+# --- expose Dash server for gunicorn ---
+app_instance = DashboardApplication()
+server = app_instance.app.server  # used by: gunicorn app:server
+
 def main():
     """Application entry point."""
-    app = DashboardApplication()
-    app.run()
+    app_instance.run()
 
 if __name__ == "__main__":
     main()

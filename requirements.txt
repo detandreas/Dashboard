@@ -5,3 +5,5 @@ yfinance
 plotly
 gunicorn
 openpyxl
+scikit-learn
+numpy

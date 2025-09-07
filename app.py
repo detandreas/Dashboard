@@ -1,19 +1,23 @@
 import os
 from datetime import datetime, timedelta
+import base64
+import io
 
 import dash
-from dash import html, dcc
-from dash.dependencies import Input, Output
+from dash import html, dcc, dash_table
+from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 import pandas as pd
 import yfinance as yf
 import dash_bootstrap_components as dbc
-from dash import dash_table
+from sklearn.linear_model import LinearRegression
+import numpy as np
 
 from buys import buys
 from Dollar_cost_average import DCA
 from growth import growth, portfolio_growth
 from extrema import max_data, min_data
+from finance_page import build_finance_page
 
 """
 Dashboard – two overall views
@@ -34,6 +38,7 @@ Dashboard – two overall views
 # ---------------------------------------------------------------------------
 
 TRADES_XLSX = os.getenv("DASH_FILE_PATH", "Trades.xlsx")
+FINANCE_XLSX = "Book3.xlsx"
 TRACKED = {
     "VUAA.L": "VUAA.EU",
     "EQAC.SW": "EQAC.EU",
@@ -143,12 +148,38 @@ def add_zero(fig):
 p_max, p_max_dt = max_data(portfolio_profit, idx)
 p_min, p_min_dt = min_data(portfolio_profit, idx)
 fig_port_profit = go.Figure([
-    go.Scatter(x=idx, y=portfolio_profit, name="Profit",
-               line=dict(width=2), hovertemplate='%{y:.2f}€<extra></extra>'),
-    go.Scatter(x=[p_max_dt], y=[p_max], mode="markers", name="Max",
-               marker=dict(size=14, color="#00E676"), hovertemplate='%{y:.2f}€<extra></extra>'),
-    go.Scatter(x=[p_min_dt], y=[p_min], mode="markers", name="Min",
-               marker=dict(size=14, color="red"), hovertemplate='%{y:.2f}€<extra></extra>'),
+    go.Scatter(
+        x=idx, 
+        y=portfolio_profit, 
+        name="Portfolio Profit",
+        line=dict(width=2), 
+        hovertemplate='<b>Portfolio Profit</b><br>' +
+                     'Date: %{x|%d %b %Y}<br>' +
+                     'Profit: €%{y:,.2f}' +
+                     '<extra></extra>'
+    ),
+    go.Scatter(
+        x=[p_max_dt], 
+        y=[p_max], 
+        mode="markers", 
+        name="Maximum Profit",
+        marker=dict(size=14, color="#00E676"), 
+        hovertemplate='<b>Maximum Profit</b><br>' +
+                     'Date: %{x|%d %b %Y}<br>' +
+                     'Profit: €%{y:,.2f}' +
+                     '<extra></extra>'
+    ),
+    go.Scatter(
+        x=[p_min_dt], 
+        y=[p_min], 
+        mode="markers", 
+        name="Minimum Profit",
+        marker=dict(size=14, color="red"), 
+        hovertemplate='<b>Minimum Profit</b><br>' +
+                     'Date: %{x|%d %b %Y}<br>' +
+                     'Profit: €%{y:,.2f}' +
+                     '<extra></extra>'
+    ),
 ]).update_layout(height=550, template="plotly_white", yaxis_title="€",
                  yaxis=dict(dtick=PORT_PROFIT_DTICK))
 add_zero(fig_port_profit)
@@ -156,12 +187,38 @@ add_zero(fig_port_profit)
 y_max, y_max_dt = max_data(portfolio_yield_series, idx)
 y_min, y_min_dt = min_data(portfolio_yield_series, idx)
 fig_port_yield = go.Figure([
-    go.Scatter(x=idx, y=[y * 100 for y in portfolio_yield_series],
-               name="Yield %", line=dict(width=2), hovertemplate='%{y:.2f}%<extra></extra>'),
-    go.Scatter(x=[y_max_dt], y=[y_max * 100], mode="markers", name="Max",
-               marker=dict(size=14, color="#00E676"), hovertemplate='%{y:.2f}%<extra></extra>'),
-    go.Scatter(x=[y_min_dt], y=[y_min * 100], mode="markers", name="Min",
-               marker=dict(size=14, color="red"), hovertemplate='%{y:.2f}%<extra></extra>'),
+    go.Scatter(
+        x=idx, 
+        y=[y * 100 for y in portfolio_yield_series],
+        name="Portfolio Yield", 
+        line=dict(width=2), 
+        hovertemplate='<b>Portfolio Yield</b><br>' +
+                     'Date: %{x|%d %b %Y}<br>' +
+                     'Yield: %{y:.2f}%' +
+                     '<extra></extra>'
+    ),
+    go.Scatter(
+        x=[y_max_dt], 
+        y=[y_max * 100], 
+        mode="markers", 
+        name="Maximum Yield",
+        marker=dict(size=14, color="#00E676"), 
+        hovertemplate='<b>Maximum Yield</b><br>' +
+                     'Date: %{x|%d %b %Y}<br>' +
+                     'Yield: %{y:.2f}%' +
+                     '<extra></extra>'
+    ),
+    go.Scatter(
+        x=[y_min_dt], 
+        y=[y_min * 100], 
+        mode="markers", 
+        name="Minimum Yield",
+        marker=dict(size=14, color="red"), 
+        hovertemplate='<b>Minimum Yield</b><br>' +
+                     'Date: %{x|%d %b %Y}<br>' +
+                     'Yield: %{y:.2f}%' +
+                     '<extra></extra>'
+    ),
 ]).update_layout(height=550, template="plotly_white", yaxis_title="%",
                  yaxis=dict(dtick=PORT_YIELD_DTICK))
 add_zero(fig_port_yield)
@@ -256,7 +313,9 @@ app.layout = html.Div(
                                 },
                                 {"label": "📜 Trades History",             
                                  "value": "TRADES"
-                                
+                                },
+                                {"label": "💰 Personal Finances",             
+                                 "value": "FINANCE"
                                 }
                             ],
                             value="TICKERS",
@@ -271,81 +330,8 @@ app.layout = html.Div(
                     ],
                     style={"width": "300px", "margin": "20px auto"},
                 ),
-                # Summary Cards ---------------------------------------------------
-                html.Div(
-                    [
-                        html.H2(
-                            "Dashboard Summary",
-                            style={
-                                "textAlign": "center",
-                                "color": COLORS["accent"],
-                                "marginTop": "10px",
-                            },
-                        ),
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.Div(
-                                            [
-                                                html.H5(
-                                                    "Last Updated",
-                                                    style={
-                                                        "color": COLORS[
-                                                            "text_secondary"
-                                                        ],
-                                                        "margin": "0",
-                                                    },
-                                                ),
-                                                html.H3(
-                                                    datetime.now().strftime(
-                                                        "%d %b %Y, %H:%M"
-                                                    ),
-                                                    style={
-                                                        "margin": "5px 0",
-                                                        "color": COLORS[
-                                                            "text_primary"
-                                                        ],
-                                                    },
-                                                ),
-                                            ],
-                                            style=CARD_STYLE,
-                                        ),
-                                        html.Div(
-                                            [
-                                                html.H5(
-                                                    "Portfolio Value",
-                                                    style={
-                                                        "color": COLORS[
-                                                            "text_secondary"
-                                                        ],
-                                                        "margin": "0",
-                                                    },
-                                                ),
-                                                html.H3(
-                                                    f"${port_current:.2f}",
-                                                    style={
-                                                        "margin": "5px 0",
-                                                        "color": COLORS[
-                                                            "accent"
-                                                        ],
-                                                        "fontWeight": "bold",
-                                                    },
-                                                ),
-                                            ],
-                                            style=CARD_STYLE,
-                                        ),
-                                    ],
-                                    style={
-                                        "display": "flex",
-                                        "justifyContent": "center",
-                                        "flexWrap": "wrap",
-                                    },
-                                )
-                            ]
-                        ),
-                    ]
-                ),
+                # Summary Cards (conditional) --------------------------------
+                html.Div(id="dashboard-summary"),
                 # Main Content Area ----------------------------------------------
                 html.Div(id="content", style={"marginTop": "20px"}),
                 # Footer ----------------------------------------------------------
@@ -649,24 +635,33 @@ def build_ticker_section(ticker: str) -> html.Div:
             go.Scatter(
                 x=d["price"].index,
                 y=d["price"]["Close"],
-                name="Close",
+                name="Close Price",
                 line=dict(width=3, color=COLORS["accent"]),
-                hovertemplate='%{y:.2f}<extra></extra>',
+                hovertemplate='<b>Close Price</b><br>' +
+                             'Date: %{x|%d %b %Y}<br>' +
+                             'Price: %{y:.2f}' +
+                             '<extra></extra>',
             ),
             go.Scatter(
                 x=d["price"].index,
                 y=d["dca"],
-                name="DCA",
+                name="DCA Price",
                 line=dict(width=2, dash="dash", color=COLORS["green"]),
-                hovertemplate='%{y:.2f}<extra></extra>',
+                hovertemplate='<b>Dollar Cost Average</b><br>' +
+                             'Date: %{x|%d %b %Y}<br>' +
+                             'DCA Price: %{y:.2f}' +
+                             '<extra></extra>',
             ),
             go.Scatter(
                 x=d["buy_dates"],
                 y=d["buy_prices"],
                 mode="markers",
-                name="Buys",
+                name="Buy Orders",
                 marker=dict(size=14, color=COLORS["red"]),
-                hovertemplate='%{y:.2f}<extra></extra>',
+                hovertemplate='<b>Buy Order</b><br>' +
+                             'Date: %{x|%d %b %Y}<br>' +
+                             'Buy Price: %{y:.2f}' +
+                             '<extra></extra>',
             ),
         ]
     )
@@ -935,8 +930,15 @@ def build_portfolio_section() -> html.Div:
     )
 
 # ---------------------------------------------------------------------------
-# CALLBACK ------------------------------------------------------------------
+# FINANCE PAGE FUNCTIONS ----------------------------------------------------
 # ---------------------------------------------------------------------------
+
+def show_finance_dashboard():
+    """Wrapper function to call the finance page with proper parameters"""
+    return build_finance_page(FINANCE_XLSX, COLORS, CARD_STYLE)
+
+# ---------------------------------------------------------------------------
+# CALLBACK ------------------------------------------------------------------
 
 @app.callback(Output("content", "children"), Input("view-dd", "value"))
 def render_content(view):
@@ -944,6 +946,8 @@ def render_content(view):
         return build_portfolio_section()
     elif view == "TRADES":
         return build_trades_section()
+    elif view == "FINANCE":
+        return show_finance_dashboard()
     # Default: TICKERS
     return html.Div(
         [
@@ -953,10 +957,93 @@ def render_content(view):
         ]
     )
 
+# Add new callback for conditional dashboard summary
+@app.callback(Output("dashboard-summary", "children"), Input("view-dd", "value"))
+def render_dashboard_summary(view):
+    if view == "FINANCE":
+        return html.Div()  # Empty div for Finance page
+    
+    # Show dashboard summary for all other pages
+    return html.Div(
+        [
+            html.H2(
+                "Dashboard Summary",
+                style={
+                    "textAlign": "center",
+                    "color": COLORS["accent"],
+                    "marginTop": "10px",
+                },
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                html.H5(
+                                    "Last Updated",
+                                    style={
+                                        "color": COLORS[
+                                            "text_secondary"
+                                        ],
+                                        "margin": "0",
+                                    },
+                                ),
+                                html.H3(
+                                    datetime.now().strftime(
+                                        "%d %b %Y, %H:%M"
+                                    ),
+                                    style={
+                                        "margin": "5px 0",
+                                        "color": COLORS[
+                                            "text_primary"
+                                        ],
+                                    },
+                                ),
+                                ],
+                                style=CARD_STYLE,
+                            ),
+                            html.Div(
+                                [
+                                html.H5(
+                                    "Portfolio Value",
+                                    style={
+                                        "color": COLORS[
+                                            "text_secondary"
+                                        ],
+                                        "margin": "0",
+                                    },
+                                ),
+                                html.H3(
+                                    f"${port_current:.2f}",
+                                    style={
+                                        "margin": "5px 0",
+                                        "color": COLORS[
+                                            "accent"
+                                        ],
+                                        "fontWeight": "bold",
+                                    },
+                                ),
+                                ],
+                                style=CARD_STYLE,
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "justifyContent": "center",
+                            "flexWrap": "wrap",
+                        },
+                    )
+                ]
+            ),
+        ]
+    )
+
 # ---------------------------------------------------------------------------
 # MAIN ----------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8050, use_reloader=False)
+
 

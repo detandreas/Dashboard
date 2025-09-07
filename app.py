@@ -74,7 +74,7 @@ class DashboardApplication:
         
         app.layout = self._create_main_layout()
         
-        # Add custom CSS for dropdown styling
+        # Add custom CSS for sidebar styling
         app.index_string = '''
         <!DOCTYPE html>
         <html>
@@ -84,39 +84,128 @@ class DashboardApplication:
                 {%favicon%}
                 {%css%}
                 <style>
-                    /* Dropdown dark theme styling */
-                    .Select-control {
-                        background-color: #000000 !important;
-                        border: 1px solid #333333 !important;
-                        color: #FFFFFF !important;
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: 'Roboto', 'Segoe UI', 'Helvetica Neue', sans-serif;
                     }
-                    .Select-value-label {
-                        color: #FFFFFF !important;
+                    
+                    .app-container {
+                        display: flex;
+                        min-height: 100vh;
+                        background-color: #0A0A0A;
                     }
-                    .Select-placeholder {
-                        color: #AAAAAA !important;
+                    
+                    .sidebar {
+                        width: 220px;
+                        background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+                        border-right: 2px solid #333;
+                        position: fixed;
+                        height: 100vh;
+                        overflow-y: auto;
+                        box-shadow: 4px 0 12px rgba(0,0,0,0.3);
                     }
-                    .Select-menu-outer {
-                        background-color: #1E1E1E !important;
-                        border: 1px solid #333333 !important;
+                    
+                    .sidebar-header {
+                        padding: 25px 20px;
+                        border-bottom: 1px solid #333;
+                        background: linear-gradient(135deg, #2979FF 0%, #1976D2 100%);
                     }
-                    .Select-option {
-                        background-color: #1E1E1E !important;
-                        color: #FFFFFF !important;
+                    
+                    .sidebar-title {
+                        color: white;
+                        font-size: 1.4rem;
+                        font-weight: 600;
+                        margin: 0;
+                        text-align: center;
                     }
-                    .Select-option:hover {
-                        background-color: #333333 !important;
-                        color: #FFFFFF !important;
+                    
+                    .sidebar-subtitle {
+                        color: rgba(255,255,255,0.8);
+                        font-size: 0.85rem;
+                        margin: 5px 0 0 0;
+                        text-align: center;
                     }
-                    .Select-option.is-selected {
-                        background-color: #2979FF !important;
-                        color: #FFFFFF !important;
+                    
+                    .nav-menu {
+                        padding: 20px 0;
                     }
-                    .Select-arrow {
-                        border-color: #FFFFFF transparent transparent !important;
+                    
+                    .nav-item {
+                        display: flex;
+                        align-items: center;
+                        padding: 12px 20px;
+                        color: #CCCCCC;
+                        text-decoration: none;
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        border: none;
+                        background: none;
+                        width: 100%;
+                        text-align: left;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        border-left: 3px solid transparent;
                     }
-                    .Select-input > input {
-                        color: #FFFFFF !important;
+                    
+                    .nav-item:hover {
+                        background-color: #252525;
+                        color: #2979FF;
+                        border-left-color: #2979FF;
+                    }
+                    
+                    .nav-item.active {
+                        background-color: #2979FF20;
+                        color: #2979FF;
+                        border-left-color: #2979FF;
+                        font-weight: 600;
+                    }
+                    
+                    .main-content {
+                        margin-left: 220px;
+                        flex: 1;
+                        background-color: #0A0A0A;
+                        min-height: 100vh;
+                    }
+                    
+                    .content-header {
+                        background: linear-gradient(135deg, #1E1E1E 0%, #121212 100%);
+                        color: white;
+                        padding: 30px 40px;
+                        border-bottom: 2px solid #2979FF;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    }
+                    
+                    .content-body {
+                        padding: 30px 40px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+                    
+                    .page-title {
+                        font-size: 2.2rem;
+                        font-weight: 600;
+                        margin: 0;
+                        color: white;
+                    }
+                    
+                    .page-subtitle {
+                        font-size: 1.1rem;
+                        margin: 8px 0 0 0;
+                        opacity: 0.9;
+                        color: #CCCCCC;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .sidebar {
+                            width: 200px;
+                        }
+                        .main-content {
+                            margin-left: 200px;
+                        }
+                        .content-body {
+                            padding: 20px;
+                        }
                     }
                 </style>
             </head>
@@ -134,86 +223,64 @@ class DashboardApplication:
         return app
     
     def _create_main_layout(self) -> html.Div:
-        """Create the main application layout."""
+        """Create the main application layout with sidebar."""
         return html.Div([
-            # Application Header
-            self._create_header(),
+            # Sidebar Navigation
+            self._create_sidebar(),
             
-            # Main Content Container
+            # Main Content Area
             html.Div([
-                # Navigation
-                self._create_navigation(),
+                # Page Header
+                html.Div(id="page-header"),
                 
-                # Dynamic Summary Cards
-                html.Div(id="dashboard-summary"),
+                # Content Body
+                html.Div([
+                    # Dynamic Summary Cards
+                    html.Div(id="dashboard-summary"),
+                    
+                    # Main Content
+                    html.Div(id="main-content", style={"marginTop": "20px"}),
+                    
+                    # Footer
+                    self._create_footer()
+                ], className="content-body")
                 
-                # Main Content Area
-                html.Div(id="main-content", style={"marginTop": "20px"}),
-                
-                # Footer
-                self._create_footer()
-                
-            ], style={
-                "padding": "0 2rem",
-                "maxWidth": "1400px",
-                "margin": "0 auto"
-            })
+            ], className="main-content")
             
-        ], style={
-            "fontFamily": "'Roboto', 'Segoe UI', 'Helvetica Neue', sans-serif",
-            "backgroundColor": self.config.ui.colors["background"],
-            "minHeight": "100vh",
-            "color": self.config.ui.colors["text_primary"]
-        })
+        ], className="app-container")
     
-    def _create_header(self) -> html.Div:
-        """Create application header."""
+    def _create_sidebar(self) -> html.Div:
+        """Create fixed sidebar navigation."""
+        nav_items = [
+            {"id": "tickers", "icon": "📈", "label": "Individual Tickers"},
+            {"id": "portfolio", "icon": "📊", "label": "Portfolio Overview"},
+            {"id": "trades", "icon": "📋", "label": "Trading History"},
+            {"id": "finances", "icon": "💰", "label": "Personal Finances"}
+        ]
+        
         return html.Div([
-            html.H1("Andreas's Portfolio Tracker", style={
-                "fontWeight": "600",
-                "margin": "0",
-                "fontSize": "2.5rem"
-            }),
-            html.P(
-                "Professional investment tracking with real-time analytics",
-                style={
-                    "fontSize": "1.2rem",
-                    "marginTop": "8px",
-                    "opacity": "0.9"
-                }
-            )
-        ], style={
-            "backgroundColor": self.config.ui.colors["header"],
-            "color": self.config.ui.colors["text_primary"],
-            "padding": "2rem",
-            "boxShadow": "0 4px 12px rgba(0,0,0,0.3)",
-            "marginBottom": "30px",
-            "borderRadius": "0 0 20px 20px",
-            "borderBottom": f"2px solid {self.config.ui.colors['accent']}"
-        })
-    
-    def _create_navigation(self) -> html.Div:
-        """Create navigation dropdown."""
-        return html.Div([
-            dcc.Dropdown(
-                id="page-selector",
-                options=[
-                    {"label": "📈 Individual Tickers", "value": "tickers"},
-                    {"label": "📊 Portfolio Overview", "value": "portfolio"},
-                    {"label": "📋 Trading History", "value": "trades"},
-                    {"label": "💰 Personal Finances", "value": "finances"}
-                ],
-                value="tickers",
-                clearable=False,
-                style={
-                    "color": self.config.ui.colors["text_primary"],
-                    "fontWeight": "bold"
-                }
-            )
-        ], style={
-            "width": "350px",
-            "margin": "20px auto"
-        })
+            # Sidebar Header
+            html.Div([
+                html.H1("Portfolio Tracker", className="sidebar-title"),
+                html.P("Investment Analytics", className="sidebar-subtitle")
+            ], className="sidebar-header"),
+            
+            # Navigation Menu
+            html.Div([
+                html.Button([
+                    html.Span(f"{item['icon']}", style={"marginRight": "10px", "fontSize": "1.1rem"}),
+                    html.Span(item['label'], style={"fontSize": "0.95rem"})
+                ], 
+                id=f"nav-{item['id']}", 
+                className="nav-item",
+                n_clicks=0
+                ) for item in nav_items
+            ], className="nav-menu"),
+            
+            # Store for active page
+            dcc.Store(id="active-page", data="tickers")
+            
+        ], className="sidebar")
     
     def _create_footer(self) -> html.Footer:
         """Create application footer."""
@@ -232,9 +299,76 @@ class DashboardApplication:
     def _register_callbacks(self):
         """Register all Dash callbacks."""
         
+        # Navigation callback
+        @self.app.callback(
+            [Output("active-page", "data"),
+             Output("nav-tickers", "className"),
+             Output("nav-portfolio", "className"),
+             Output("nav-trades", "className"),
+             Output("nav-finances", "className")],
+            [Input("nav-tickers", "n_clicks"),
+             Input("nav-portfolio", "n_clicks"),
+             Input("nav-trades", "n_clicks"),
+             Input("nav-finances", "n_clicks")]
+        )
+        def handle_navigation(tickers_clicks, portfolio_clicks, trades_clicks, finances_clicks):
+            """Handle sidebar navigation clicks."""
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                return "tickers", "nav-item active", "nav-item", "nav-item", "nav-item"
+            
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            page_map = {
+                "nav-tickers": "tickers",
+                "nav-portfolio": "portfolio", 
+                "nav-trades": "trades",
+                "nav-finances": "finances"
+            }
+            
+            active_page = page_map.get(button_id, "tickers")
+            
+            # Set active classes
+            classes = ["nav-item"] * 4
+            page_index = list(page_map.values()).index(active_page)
+            classes[page_index] = "nav-item active"
+            
+            return active_page, *classes
+        
+        @self.app.callback(
+            Output("page-header", "children"),
+            Input("active-page", "data")
+        )
+        def update_page_header(active_page: str):
+            """Update page header based on active page."""
+            headers = {
+                "tickers": {
+                    "title": "Individual Tickers Analysis",
+                    "subtitle": "Detailed performance tracking for each investment"
+                },
+                "portfolio": {
+                    "title": "Portfolio Overview", 
+                    "subtitle": "Comprehensive portfolio analytics and metrics"
+                },
+                "trades": {
+                    "title": "Trading History",
+                    "subtitle": "Complete transaction log with filtering and sorting"
+                },
+                "finances": {
+                    "title": "Personal Finances",
+                    "subtitle": "Income, expenses, and investment tracking"
+                }
+            }
+            
+            header_info = headers.get(active_page, headers["tickers"])
+            
+            return html.Div([
+                html.H1(header_info["title"], className="page-title"),
+                html.P(header_info["subtitle"], className="page-subtitle")
+            ], className="content-header")
+        
         @self.app.callback(
             Output("main-content", "children"),
-            Input("page-selector", "value")
+            Input("active-page", "data")
         )
         def render_page_content(page_name: str):
             """Render the selected page content."""
@@ -247,7 +381,7 @@ class DashboardApplication:
         
         @self.app.callback(
             Output("dashboard-summary", "children"),
-            Input("page-selector", "value")
+            Input("active-page", "data")
         )
         def render_dashboard_summary(page_name: str):
             """Render dashboard summary cards."""

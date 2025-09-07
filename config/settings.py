@@ -29,8 +29,8 @@ class Config:
     
     def __init__(self):
         self.database = DatabaseConfig(
-            trades_xlsx_path=os.getenv("DASH_FILE_PATH", "/Users/andreaspapathanasioy/Documents/FINANCE/Trades.xlsx"),
-            finance_xlsx_path="/Users/andreaspapathanasioy/Documents/FINANCE/Book3.xlsx"
+            trades_xlsx_path=os.getenv("DASH_FILE_PATH", "assets/Trades.xlsx"),
+            finance_xlsx_path="assets/Book3.xlsx"
         )
         
         self.market = MarketConfig(

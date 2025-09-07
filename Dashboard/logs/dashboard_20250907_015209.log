@@ -1,3 +1,0 @@
-2025-09-07 01:52:09 | root | INFO | setup_logging:55 | Logging configured - Level: INFO, File: logs/dashboard_20250907_015209.log
-2025-09-07 01:52:09 | __main__ | INFO | __init__:38 | Dashboard application initialized successfully
-2025-09-07 01:52:09 | __main__ | INFO | run:241 | Starting dashboard server on 0.0.0.0:8050

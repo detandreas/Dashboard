@@ -159,19 +159,19 @@ class PortfolioPage(BasePage):
                 profit_metrics = html.Div([
                     self.ui_factory.create_metric_card(
                         "Maximum Profit",
-                        f"€{max_profit:.2f}",
+                        f"${max_profit:.2f}",
                         self.colors["green"],
                         f"on {max_date.strftime('%d %b %Y')}"
                     ),
                     self.ui_factory.create_metric_card(
                         "Minimum Profit",
-                        f"€{min_profit:.2f}",
+                        f"${min_profit:.2f}",
                         self.colors["red"],
                         f"on {min_date.strftime('%d %b %Y')}"
                     ),
                     self.ui_factory.create_metric_card(
                         "Current P&L",
-                        f"€{current_profit:.2f}",
+                        f"${current_profit:.2f}",
                         profit_color,
                         f"Return: {current_return:.2f}%"
                     )
@@ -419,7 +419,7 @@ class TradesPage(BasePage):
             summary_cards = html.Div([
                 self.ui_factory.create_metric_card("Total Trades", str(total_trades)),
                 self.ui_factory.create_metric_card("Unique Tickers", str(unique_tickers)),
-                self.ui_factory.create_metric_card("Total Invested", f"€{total_invested:.2f}"),
+                self.ui_factory.create_metric_card("Total Invested", f"${total_invested:.2f}"),
                 self.ui_factory.create_metric_card(
                     "Date Range", 
                     f"{df['Date'].min().strftime('%b %Y')} - {df['Date'].max().strftime('%b %Y')}"

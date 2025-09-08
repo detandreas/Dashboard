@@ -112,11 +112,8 @@ class PortfolioPage(BasePage):
             portfolio = self.portfolio_service.get_portfolio_snapshot()
             
             return html.Div([
-                html.H2("Portfolio Overview", style={
-                    "textAlign": "center",
-                    "color": self.colors["accent"],
-                    "marginBottom": "30px"
-                }),
+                # Portfolio composition pie chart
+                self.ui_factory.create_portfolio_composition(portfolio),
                 
                 # Portfolio profit chart with current profit/loss above
                 self._create_profit_section(portfolio),

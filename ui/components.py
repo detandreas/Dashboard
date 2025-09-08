@@ -369,17 +369,17 @@ class UIComponentFactory:
                 ),
                 self.create_metric_card(
                     "Invested",
-                    f"€{portfolio.total_metrics.invested:.2f}",
+                    f"${portfolio.total_metrics.invested:.2f}",
                     self.colors["text_primary"],
                 ),
                 self.create_metric_card(
                     "Total Portfolio Value",
-                    f"€{portfolio.total_metrics.current_value:.2f}",
+                    f"${portfolio.total_metrics.current_value:.2f}",
                     self.colors["accent"],
                 ),
                 self.create_metric_card(
                     "Total P&L",
-                    f"€{portfolio.total_metrics.profit_absolute:.2f}",
+                    f"${portfolio.total_metrics.profit_absolute:.2f}",
                     self.colors["green"]
                     if portfolio.total_metrics.is_profitable
                     else self.colors["red"],

@@ -356,19 +356,19 @@ class PortfolioPage(BasePage):
 class TradesPage(BasePage):
     """Trading history page."""
     
-    def __init__(self, ui_factory: UIComponentFactory, config: Config):
+    def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory):
         super().__init__(ui_factory)
-        self.config = config
+        self.portfolio_service = portfolio_service
     
     def render(self) -> html.Div:
         """Render trades history table."""
         try:
-            # Load and process trades data
+            # Load trades data for display
             df = pd.read_excel(self.config.database.trades_xlsx_path)
             df["Date"] = pd.to_datetime(df["Date"])
             df = df.sort_values("Date", ascending=False)
             
-            # Clean up columns
+            # Clean up columns for display
             display_df = df.drop(columns=["Number"], errors='ignore')
             display_df = display_df.copy()
             display_df['Date'] = display_df['Date'].dt.strftime('%Y-%m-%d')
@@ -408,13 +408,13 @@ class TradesPage(BasePage):
                 ]
             )
             
-            # Create summary statistics (exclude EUR/USD from total invested)
-            buy_trades = df[df['Direction'].str.strip() == 'Buy']
-            # Exclude EUR/USD from total invested calculation
-            buy_trades_excluding_eur_usd = buy_trades[buy_trades['Ticker'] != 'USD/EUR']
-            total_invested = (buy_trades_excluding_eur_usd['Price'] * buy_trades_excluding_eur_usd['Quantity']).sum()
+            # Get portfolio data for summary statistics
+            portfolio = self.portfolio_service.get_portfolio_snapshot()
+            
+            # Create summary statistics using portfolio data
             total_trades = len(df)
             unique_tickers = df['Ticker'].nunique()
+            total_invested = portfolio.total_metrics.invested  # Use calculated value
             
             summary_cards = html.Div([
                 self.ui_factory.create_metric_card("Total Trades", str(total_trades)),
@@ -595,7 +595,7 @@ class PageFactory:
         self._pages = {
             "tickers": lambda: TickersPage(self.portfolio_service, self.ui_factory),
             "portfolio": lambda: PortfolioPage(self.portfolio_service, self.ui_factory),
-            "trades": lambda: TradesPage(self.ui_factory, self.config),
+            "trades": lambda: TradesPage(self.portfolio_service, self.ui_factory),
             "finances": lambda: FinancePage(self.ui_factory, self.config)
         }
     

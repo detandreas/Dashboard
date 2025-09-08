@@ -53,8 +53,8 @@ class PortfolioService:
                 )
                 ticker_data_list.append(ticker_data)
             
-            # Calculate portfolio totals
-            total_metrics = self._calculate_portfolio_metrics(ticker_data_list)
+            # Calculate portfolio totals using calculation service
+            total_metrics = self.calculator.calculate_portfolio_metrics(ticker_data_list)
             
             snapshot = PortfolioSnapshot(
                 timestamp=datetime.now(),
@@ -80,68 +80,26 @@ class PortfolioService:
         return trades_by_ticker
     
     def _process_ticker(self, ticker: str, trades: List[Trade], price_df) -> TickerData:
-        """Process individual ticker data."""
+        """Process individual ticker data using calculation service."""
         try:
-            if trades:
-                # Calculate DCA and shares progression
-                dca, shares_per_day = self.calculator.calculate_dca(price_df, trades)
-                
-                # Calculate profit series
-                profit_series = self.calculator.calculate_profit_series(
-                    price_df, dca, shares_per_day
-                )
-                
-                # Calculate performance metrics
-                current_price = price_df['Close'].iloc[-1]
-                metrics = self.calculator.calculate_performance_metrics(trades, current_price)
-                
-                # Extract trade data
-                buy_trades = [t for t in trades if t.is_buy]
-                buy_dates = [t.date for t in buy_trades]
-                buy_prices = [t.price for t in buy_trades]
-                buy_quantities = [t.quantity for t in buy_trades]
-            else:
-                # No trades for this ticker
-                dca = [0.0] * len(price_df)
-                shares_per_day = [0.0] * len(price_df)
-                profit_series = [0.0] * len(price_df)
-                metrics = PerformanceMetrics(0, 0, 0, 0, 0)
-                buy_dates = buy_prices = buy_quantities = []
+            # Use calculation service to process all ticker data
+            calc_results = self.calculator.process_ticker_data(ticker, trades, price_df)
             
             return TickerData(
                 symbol=ticker,
                 price_history=price_df,
-                dca_history=dca,
-                shares_per_day=shares_per_day,
-                profit_series=profit_series,
-                buy_dates=buy_dates,
-                buy_prices=buy_prices,
-                buy_quantities=buy_quantities,
-                metrics=metrics
+                dca_history=calc_results['dca_history'],
+                shares_per_day=calc_results['shares_per_day'],
+                profit_series=calc_results['profit_series'],
+                buy_dates=calc_results['buy_dates'],
+                buy_prices=calc_results['buy_prices'],
+                buy_quantities=calc_results['buy_quantities'],
+                metrics=calc_results['metrics']
             )
             
         except Exception as e:
             logger.error(f"Error processing ticker {ticker}: {e}")
             raise
-    
-    def _calculate_portfolio_metrics(self, ticker_data_list: List[TickerData]) -> PerformanceMetrics:
-        """Calculate overall portfolio metrics."""
-        equity_tickers = [t for t in ticker_data_list if t.symbol != "USD/EUR"]
-        
-        total_invested = sum(t.metrics.invested for t in equity_tickers)
-        total_current = sum(t.metrics.current_value for t in equity_tickers)
-        total_profit = sum(t.metrics.profit_absolute for t in ticker_data_list)  # Include USD
-        
-        return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0
-        avg_price = 0  # Not applicable for portfolio
-        
-        return PerformanceMetrics(
-            invested=total_invested,
-            current_value=total_current,
-            profit_absolute=total_profit,
-            return_percentage=return_pct,
-            average_buy_price=avg_price
-        )
     
     def refresh_data(self):
         """Force refresh of all data."""

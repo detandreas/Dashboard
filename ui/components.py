@@ -393,3 +393,151 @@ class UIComponentFactory:
                 ),
             ], style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"}),
         ])
+
+    def create_portfolio_composition(self, portfolio: PortfolioSnapshot) -> html.Div:
+        """Create portfolio composition pie chart with breakdown."""
+        try:
+            # Filter tickers with investments, excluding USD/EUR
+            invested_tickers = [
+                ticker for ticker in portfolio.tickers 
+                if ticker.metrics.invested > 0 and ticker.symbol not in ['USD', 'EUR', 'USD/EUR']
+            ]
+            
+            if not invested_tickers:
+                return html.Div([
+                    html.H3("Portfolio Composition", style={
+                        "textAlign": "center",
+                        "color": self.colors["text_secondary"]
+                    }),
+                    html.P("No investment data available", style={
+                        "textAlign": "center",
+                        "color": self.colors["text_secondary"]
+                    })
+                ], style=self.config.ui.card_style)
+            
+            # Prepare data for pie chart
+            symbols = [ticker.symbol for ticker in invested_tickers]
+            values = [ticker.metrics.invested for ticker in invested_tickers]
+            percentages = [value / sum(values) * 100 for value in values]
+            
+            # Calculate total portfolio value for center display
+            total_portfolio_value = sum(ticker.metrics.current_value for ticker in invested_tickers)
+            
+            # Create pie chart
+            fig = go.Figure(data=[go.Pie(
+                labels=symbols,
+                values=values,
+                hole=0.4,
+                textinfo='label+percent',
+                textposition='auto',
+                hovertemplate='<b>%{label}</b><br>' +
+                             'Invested: $%{value:,.2f}<br>' +
+                             'Percentage: %{percent}<br>' +
+                             '<extra></extra>',
+                marker=dict(
+                    colors=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'],
+                    line=dict(color='#000000', width=2)
+                )
+            )])
+            
+            # Add total portfolio value text in the center
+            fig.add_annotation(
+                text=f"<br>${total_portfolio_value:,.2f}",
+                x=0.5, y=0.5,
+                font=dict(size=16, color=self.colors["text_primary"]),
+                showarrow=False,
+                align="center"
+            )
+            
+            fig.update_layout(
+                height=400,
+                template="plotly_dark",
+                title={
+                    "text": "Portfolio Composition",
+                    "font": {"size": 18, "color": self.colors["text_primary"]},
+                    "y": 0.95, "x": 0.5, "xanchor": "center", "yanchor": "top"
+                },
+                plot_bgcolor=self.colors["card_bg"],
+                paper_bgcolor=self.colors["card_bg"],
+                font=dict(color=self.colors["text_primary"]),
+                showlegend=False,
+                margin=dict(l=20, r=20, t=60, b=20)
+            )
+            
+            # Create breakdown list
+            breakdown_items = []
+            for ticker, percentage, value in zip(symbols, percentages, values):
+                breakdown_items.append(
+                    html.Div([
+                        html.Div([
+                            html.Span(ticker, style={
+                                "fontWeight": "bold",
+                                "fontSize": "1.1rem",
+                                "color": self.colors["accent"]
+                            }),
+                            html.Span(f"{percentage:.1f}%", style={
+                                "float": "right",
+                                "fontWeight": "bold",
+                                "color": self.colors["text_primary"]
+                            })
+                        ], style={"marginBottom": "5px"}),
+                        html.Div(f"${value:,.2f}", style={
+                            "color": self.colors["text_secondary"],
+                            "fontSize": "0.9rem"
+                        })
+                    ], style={
+                        "padding": "15px",
+                        "marginBottom": "10px",
+                        "backgroundColor": self.colors["background"],
+                        "borderRadius": "8px",
+                        "border": f"1px solid {self.colors['grid']}"
+                    })
+                )
+            
+            return html.Div([
+                html.H3("Portfolio Composition", style={
+                    "textAlign": "center",
+                    "color": self.colors["accent"],
+                    "marginBottom": "20px"
+                }),
+                html.Div([
+                    # Pie chart on the left
+                    html.Div([
+                        dcc.Graph(figure=fig)
+                    ], style={
+                        "width": "60%",
+                        "display": "inline-block",
+                        "verticalAlign": "top"
+                    }),
+                    # Breakdown on the right
+                    html.Div([
+                        html.H4("Investment Breakdown", style={
+                            "color": self.colors["text_primary"],
+                            "marginBottom": "20px",
+                            "textAlign": "center"
+                        }),
+                        html.Div(breakdown_items)
+                    ], style={
+                        "width": "38%",
+                        "display": "inline-block",
+                        "verticalAlign": "top",
+                        "paddingLeft": "20px"
+                    })
+                ], style={"width": "100%"})
+            ], style={
+                **self.config.ui.card_style,
+                "marginBottom": "30px"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creating portfolio composition: {e}")
+            return html.Div([
+                html.H3("Portfolio Composition", style={
+                    "color": self.colors["red"],
+                    "textAlign": "center"
+                }),
+                html.P(f"Error loading composition: {str(e)}", style={
+                    "textAlign": "center",
+                    "color": self.colors["text_secondary"]
+                })
+            ], style=self.config.ui.card_style)

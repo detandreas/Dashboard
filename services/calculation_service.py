@@ -10,24 +10,27 @@ logger = logging.getLogger(__name__)
 class StandardCalculationService(PortfolioCalculator):
     """Standard implementation of portfolio calculations."""
     
-    def calculate_dca(self, price_data: pd.DataFrame, trades: List[Trade]) -> tuple[List[float], List[float]]:
+    def calculate_dca(self, price_data: pd.DataFrame, buy_trades: List[Trade]) -> tuple[List[float], List[float]]:
         """Calculate Dollar Cost Average and shares per day."""
         try:
+            # Handle empty trades case
+            if not buy_trades:
+                return [0.0] * len(price_data), [0.0] * len(price_data)
+            
             dca_history = []
             shares_history = []
             cumulative_cost = 0.0
             cumulative_shares = 0.0
             trade_idx = 0
             
-            # Filter and sort buy trades
-            buy_trades = [t for t in trades if t.is_buy]
-            buy_trades.sort(key=lambda x: x.date)
+            # Sort buy trades by date
+            sorted_buy_trades = sorted(buy_trades, key=lambda x: x.date)
             
             for current_date in price_data.index:
                 # Process trades for current date
-                while (trade_idx < len(buy_trades) and 
-                       current_date.date() == buy_trades[trade_idx].date.date()):
-                    trade = buy_trades[trade_idx]
+                while (trade_idx < len(sorted_buy_trades) and 
+                       current_date.date() == sorted_buy_trades[trade_idx].date.date()):
+                    trade = sorted_buy_trades[trade_idx]
                     cumulative_cost += trade.total_value
                     cumulative_shares += trade.quantity
                     trade_idx += 1
@@ -47,17 +50,14 @@ class StandardCalculationService(PortfolioCalculator):
             logger.error(f"Error calculating DCA: {e}")
             raise
     
-    def calculate_performance_metrics(self, trades: List[Trade], current_price: float) -> PerformanceMetrics:
+    def calculate_performance_metrics(self, buy_trades: List[Trade], current_price: float) -> PerformanceMetrics:
         """Calculate comprehensive performance metrics."""
         try:
-            buy_trades = [t for t in trades if t.is_buy]
-            
             if not buy_trades:
                 return PerformanceMetrics(0, 0, 0, 0, 0)
             
-            # Calculate base metrics - exclude EUR/USD from total invested
-            buy_trades_excluding_eur_usd = [t for t in buy_trades ]
-            total_invested = sum(trade.total_value for trade in buy_trades_excluding_eur_usd)
+            # Calculate base metrics using pre-filtered buy trades
+            total_invested = sum(trade.total_value for trade in buy_trades)
             total_shares = sum(trade.quantity for trade in buy_trades)
             avg_buy_price = total_invested / total_shares if total_shares > 0 else 0
             
@@ -81,6 +81,10 @@ class StandardCalculationService(PortfolioCalculator):
     def calculate_profit_series(self, price_data: pd.DataFrame, dca: List[float], shares: List[float]) -> np.ndarray:
         """Calculate daily profit progression."""
         try:
+            # Handle empty data case
+            if not dca or not shares:
+                return np.array([0.0] * len(price_data))
+            
             profit_series = []
             
             for i, (_, row) in enumerate(price_data.iterrows()):
@@ -99,6 +103,55 @@ class StandardCalculationService(PortfolioCalculator):
             logger.error(f"Error calculating profit series: {e}")
             raise
     
+    def extract_trade_data(self, buy_trades: List[Trade]) -> tuple[List, List, List]:
+        """Extract buy trade data for plotting."""
+        try:
+            if not buy_trades:
+                return [], [], []
+            
+            buy_dates = [t.date for t in buy_trades]
+            buy_prices = [t.price for t in buy_trades]
+            buy_quantities = [t.quantity for t in buy_trades]
+            
+            return buy_dates, buy_prices, buy_quantities
+            
+        except Exception as e:
+            logger.error(f"Error extracting trade data: {e}")
+            raise
+    
+    def process_ticker_data(self, ticker: str, trades: List[Trade], price_df) -> dict:
+        """Process all ticker calculations in one place."""
+        try:
+            # Filter buy trades once at the beginning
+            buy_trades = [t for t in trades if t.is_buy]
+            
+            # Calculate DCA and shares progression
+            dca, shares_per_day = self.calculate_dca(price_df, buy_trades)
+            
+            # Calculate profit series
+            profit_series = self.calculate_profit_series(price_df, dca, shares_per_day)
+            
+            # Calculate performance metrics
+            current_price = price_df['Close'].iloc[-1] if len(price_df) > 0 else 0
+            metrics = self.calculate_performance_metrics(buy_trades, current_price)
+            
+            # Extract trade data
+            buy_dates, buy_prices, buy_quantities = self.extract_trade_data(buy_trades)
+            
+            return {
+                'dca_history': dca,
+                'shares_per_day': shares_per_day,
+                'profit_series': profit_series,
+                'metrics': metrics,
+                'buy_dates': buy_dates,
+                'buy_prices': buy_prices,
+                'buy_quantities': buy_quantities
+            }
+            
+        except Exception as e:
+            logger.error(f"Error processing ticker {ticker}: {e}")
+            raise
+    
     def find_extrema(self, data: np.ndarray, dates: pd.DatetimeIndex) -> tuple[tuple[float, pd.Timestamp], tuple[float, pd.Timestamp]]:
         """Find maximum and minimum values with their dates."""
         try:
@@ -114,4 +167,31 @@ class StandardCalculationService(PortfolioCalculator):
             
         except Exception as e:
             logger.error(f"Error finding extrema: {e}")
+            raise
+    
+    def calculate_portfolio_metrics(self, ticker_data_list: List) -> PerformanceMetrics:
+        """Calculate overall portfolio performance metrics."""
+        try:
+            # Filter equity tickers (exclude USD/EUR for invested/current calculations)
+            equity_tickers = [t for t in ticker_data_list if t.symbol != "USD/EUR"]
+            
+            # Calculate totals
+            total_invested = sum(t.metrics.invested for t in equity_tickers)
+            total_current = sum(t.metrics.current_value for t in equity_tickers)
+            total_profit = sum(t.metrics.profit_absolute for t in ticker_data_list)  # Include USD
+            
+            # Calculate return percentage
+            return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0
+            avg_price = 0  # Not applicable for portfolio level
+            
+            return PerformanceMetrics(
+                invested=total_invested,
+                current_value=total_current,
+                profit_absolute=total_profit,
+                return_percentage=return_pct,
+                average_buy_price=avg_price
+            )
+            
+        except Exception as e:
+            logger.error(f"Error calculating portfolio metrics: {e}")
             raise

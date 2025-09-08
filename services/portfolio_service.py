@@ -157,3 +157,18 @@ class PortfolioService:
                 return ticker
         
         raise ValueError(f"Ticker {ticker_symbol} not found in portfolio")
+    
+    def get_trades_summary(self) -> Dict:
+        """Get summary statistics about trades."""
+        try:
+            trades = self.data_service.load_trades()
+            
+            return {
+                "total_trades": len(trades),
+                "unique_tickers": len(set(trade.ticker for trade in trades)),
+                "buy_trades": len([t for t in trades if t.is_buy]),
+                "sell_trades": len([t for t in trades if not t.is_buy])
+            }
+        except Exception as e:
+            logger.error(f"Error getting trades summary: {e}")
+            return {"total_trades": 0, "unique_tickers": 0, "buy_trades": 0, "sell_trades": 0}

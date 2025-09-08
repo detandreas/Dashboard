@@ -282,12 +282,28 @@ class UIComponentFactory:
     def create_sidebar(self, nav_items: List[dict]) -> html.Div:
         """Create the sidebar navigation component."""
         return html.Div([
-            # Sidebar Header
+            # Sidebar Header with chart blue background
             html.Div([
-                html.H1("Portfolio Tracker", className="sidebar-title"),
-                html.P("Investment Analytics", className="sidebar-subtitle"),
-            ], className="sidebar-header"),
+                html.H1("Portfolio Tracker", style={
+                    "color": "white",  # Keep text white for good contrast
+                    "fontSize": "1.4rem",
+                    "fontWeight": "600",
+                    "margin": "0",
+                    "textAlign": "center"
+                }),
+                html.P("Investment Analytics", style={
+                    "color": "rgba(255,255,255,0.8)",
+                    "fontSize": "0.85rem",
+                    "margin": "5px 0 0 0",
+                    "textAlign": "center"
+                })
+            ], style={
+                "padding": "25px 20px",
+                "borderBottom": "1px solid #333",
+                "background": '#00008B'
+            }),
 
+            
             # Navigation Menu
             html.Div([
                 html.Button([

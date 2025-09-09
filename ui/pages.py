@@ -580,34 +580,309 @@ class FinancePage(BasePage):
             ], style=self.config.ui.card_style)
         ])
 
+class SettingsPage(BasePage):
+    """Application settings page."""
+    
+    def __init__(self, ui_factory: UIComponentFactory, config: Config):
+        super().__init__(ui_factory)
+        self.config = config
+    
+    def render(self) -> html.Div:
+        """Render settings page."""
+        try:
+            return html.Div([
+                # User Profile Section
+                self._create_user_profile_section(),
+                
+                # Application Settings Section
+                self._create_app_settings_section(),
+                
+                # Data Settings Section
+                self._create_data_settings_section(),
+                
+                # About Section
+                self._create_about_section()
+            ])
+            
+        except Exception as e:
+            logger.error(f"Error rendering settings page: {e}")
+            return self._create_error_message(str(e))
+    
+    def _create_user_profile_section(self) -> html.Div:
+        """Create user profile settings section."""
+        return html.Div([
+            html.H3("User Profile", style={
+                "color": self.colors["accent"],
+                "marginBottom": "20px"
+            }),
+            
+            html.Div([
+                # Profile Picture
+                html.Div([
+                    html.Img(
+                        src="/assets/PATRICK.png",
+                        style={
+                            "width": "80px",
+                            "height": "80px",
+                            "borderRadius": "50%",
+                            "border": f"3px solid {self.colors['accent']}",
+                            "marginBottom": "15px"
+                        }
+                    ),
+                    html.H4("Andreas Papathanasiou", style={
+                        "color": self.colors["text_primary"],
+                        "margin": "0"
+                    }),
+                    html.P("Portfolio Investor", style={
+                        "color": self.colors["text_secondary"],
+                        "margin": "5px 0 0 0"
+                    })
+                ], style={
+                    "textAlign": "center",
+                    "marginBottom": "20px"
+                }),
+                
+                # Profile Stats
+                html.Div([
+                    self.ui_factory.create_metric_card("Member Since", "2025"),
+                    self.ui_factory.create_metric_card("Total Trades", "150+"),
+                    self.ui_factory.create_metric_card("Active Positions", "3")
+                ], style={
+                    "display": "flex",
+                    "justifyContent": "center",
+                    "flexWrap": "wrap"
+                })
+            ])
+        ], style={
+            **self.config.ui.card_style,
+            "marginBottom": "30px"
+        })
+    
+    def _create_app_settings_section(self) -> html.Div:
+        """Create application settings section."""
+        return html.Div([
+            html.H3("Application Settings", style={
+                "color": self.colors["accent"],
+                "marginBottom": "20px"
+            }),
+            
+            html.Div([
+                # Theme Settings
+                html.Div([
+                    html.H5("Theme", style={"color": self.colors["text_primary"]}),
+                    html.P("Dark Theme (Active)", style={
+                        "color": self.colors["text_secondary"],
+                        "margin": "10px 0"
+                    })
+                ], style={"marginBottom": "20px"}),
+                
+                # Currency Settings
+                html.Div([
+                    html.H5("Currency", style={"color": self.colors["text_primary"]}),
+                    html.P("USD ($)", style={
+                        "color": self.colors["text_secondary"],
+                        "margin": "10px 0"
+                    })
+                ], style={"marginBottom": "20px"}),
+                
+                # Refresh Rate
+                html.Div([
+                    html.H5("Data Refresh", style={"color": self.colors["text_primary"]}),
+                    html.P("Real-time updates enabled", style={
+                        "color": self.colors["text_secondary"],
+                        "margin": "10px 0"
+                    })
+                ])
+            ])
+        ], style={
+            **self.config.ui.card_style,
+            "marginBottom": "30px"
+        })
+    
+    def _create_data_settings_section(self) -> html.Div:
+        """Create data settings section."""
+        return html.Div([
+            html.H3("Data Sources", style={
+                "color": self.colors["accent"],
+                "marginBottom": "20px"
+            }),
+            
+            html.Div([
+                html.Div([
+                    html.H5("Market Data", style={"color": self.colors["text_primary"]}),
+                    html.P("Yahoo Finance API", style={
+                        "color": self.colors["text_secondary"],
+                        "margin": "10px 0"
+                    }),
+                    html.Div("🟢 Connected", style={
+                        "color": self.colors["green"],
+                        "fontSize": "0.9rem"
+                    })
+                ], style={"marginBottom": "20px"}),
+                
+                html.Div([
+                    html.H5("Portfolio Data", style={"color": self.colors["text_primary"]}),
+                    html.P("Local Excel Files", style={
+                        "color": self.colors["text_secondary"],
+                        "margin": "10px 0"
+                    }),
+                    html.Div("🟢 Loaded", style={
+                        "color": self.colors["green"],
+                        "fontSize": "0.9rem"
+                    })
+                ])
+            ])
+        ], style={
+            **self.config.ui.card_style,
+            "marginBottom": "30px"
+        })
+    
+    def _create_about_section(self) -> html.Div:
+        """Create about section."""
+        return html.Div([
+            html.H3("About", style={
+                "color": self.colors["accent"],
+                "marginBottom": "20px"
+            }),
+            
+            html.Div([
+                html.P("Portfolio Tracker Dashboard v1.0", style={
+                    "color": self.colors["text_primary"],
+                    "fontWeight": "bold",
+                    "marginBottom": "10px"
+                }),
+                html.P("A comprehensive investment tracking and analysis platform.", style={
+                    "color": self.colors["text_secondary"],
+                    "marginBottom": "20px"
+                }),
+                html.Div([
+                    html.Span("Built with: ", style={"color": self.colors["text_secondary"]}),
+                    html.Span("Python • Dash • Plotly • Pandas", style={
+                        "color": self.colors["accent"],
+                        "fontWeight": "bold"
+                    })
+                ])
+            ])
+        ], style=self.config.ui.card_style)
+    
+    def _create_error_message(self, error: str) -> html.Div:
+        """Create error message display."""
+        return html.Div([
+            html.H3("Error Loading Settings", style={
+                "color": self.colors["red"],
+                "textAlign": "center"
+            }),
+            html.P(f"An error occurred: {error}", style={
+                "textAlign": "center",
+                "color": self.colors["text_secondary"]
+            })
+        ], style=self.config.ui.card_style)
+
 class PageFactory:
-    """Factory for creating pages."""
+    """Factory for creating dashboard pages with lazy loading."""
     
     def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory, config: Config):
         self.portfolio_service = portfolio_service
         self.ui_factory = ui_factory
         self.config = config
         
-        # Page registry
-        self._pages = {
-            "tickers": lambda: TickersPage(self.portfolio_service, self.ui_factory),
-            "portfolio": lambda: PortfolioPage(self.portfolio_service, self.ui_factory),
-            "trades": lambda: TradesPage(self.portfolio_service, self.ui_factory),
-            "finances": lambda: FinancePage(self.ui_factory, self.config)
+        # Page registry - lazy initialization to avoid circular imports
+        self._page_registry = {
+            "tickers": self._create_tickers_page,
+            "portfolio": self._create_portfolio_page,
+            "trades": self._create_trades_page,
+            "finances": self._create_finances_page,
+            "settings": self._create_settings_page
         }
+        
+        # Cache for instantiated pages
+        self._page_cache = {}
+        
+        logger.info(f"PageFactory initialized with {len(self._page_registry)} page types")
     
     def create_page(self, page_name: str) -> BasePage:
-        """Create a page instance by name."""
-        if page_name not in self._pages:
-            raise ValueError(f"Unknown page: {page_name}")
+        """Create page instance by name with caching."""
+        if page_name not in self._page_registry:
+            available_pages = list(self._page_registry.keys())
+            raise ValueError(f"Unknown page: {page_name}. Available: {available_pages}")
         
-        return self._pages[page_name]()
+        # Return cached page if exists
+        if page_name in self._page_cache:
+            logger.debug(f"Returning cached page: {page_name}")
+            return self._page_cache[page_name]
+        
+        # Create new page instance
+        logger.debug(f"Creating new page instance: {page_name}")
+        page_instance = self._page_registry[page_name]()
+        
+        # Cache for future use
+        self._page_cache[page_name] = page_instance
+        
+        return page_instance
+    
+    def _create_tickers_page(self) -> TickersPage:
+        """Create tickers analysis page."""
+        return TickersPage(self.portfolio_service, self.ui_factory)
+    
+    def _create_portfolio_page(self) -> PortfolioPage:
+        """Create portfolio overview page."""
+        return PortfolioPage(self.portfolio_service, self.ui_factory)
+    
+    def _create_trades_page(self) -> TradesPage:
+        """Create trades history page."""
+        return TradesPage(self.portfolio_service, self.ui_factory)
+    
+    def _create_finances_page(self) -> FinancePage:
+        """Create personal finances page."""
+        return FinancePage(self.ui_factory, self.config)
+    
+    def _create_settings_page(self) -> SettingsPage:
+        """Create application settings page."""
+        return SettingsPage(self.ui_factory, self.config)
     
     def get_available_pages(self) -> List[str]:
         """Get list of available page names."""
-        return list(self._pages.keys())
+        return list(self._page_registry.keys())
     
-    def register_page(self, name: str, page_factory_func):
-        """Register a new page type."""
-        self._pages[name] = page_factory_func
+    def register_page(self, name: str, page_factory_func) -> None:
+        """Register a new page type dynamically."""
+        if name in self._page_registry:
+            logger.warning(f"Overriding existing page registration: {name}")
+        
+        self._page_registry[name] = page_factory_func
+        
+        # Clear cache for this page if it exists
+        if name in self._page_cache:
+            del self._page_cache[name]
+        
         logger.info(f"Registered new page type: {name}")
+    
+    def unregister_page(self, name: str) -> bool:
+        """Unregister a page type."""
+        if name not in self._page_registry:
+            logger.warning(f"Attempted to unregister non-existent page: {name}")
+            return False
+        
+        del self._page_registry[name]
+        
+        # Clear cache
+        if name in self._page_cache:
+            del self._page_cache[name]
+        
+        logger.info(f"Unregistered page type: {name}")
+        return True
+    
+    def clear_cache(self) -> None:
+        """Clear all cached page instances."""
+        cleared_count = len(self._page_cache)
+        self._page_cache.clear()
+        logger.info(f"Cleared {cleared_count} cached page instances")
+    
+    def get_cache_status(self) -> dict:
+        """Get cache status information."""
+        return {
+            "cached_pages": list(self._page_cache.keys()),
+            "available_pages": list(self._page_registry.keys()),
+            "cache_size": len(self._page_cache),
+            "registry_size": len(self._page_registry)
+        }

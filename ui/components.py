@@ -616,3 +616,66 @@ class UIComponentFactory:
                     "color": self.colors["text_secondary"]
                 })
             ], style=self.config.ui.card_style)
+
+    def create_finance_metrics_cards(self, metrics: dict) -> html.Div:
+        """Create metrics cards for finance dashboard."""
+        return html.Div([
+            self.create_metric_card(
+                "Avg Monthly Income", 
+                f"€{metrics['avg_income']:,.2f}", 
+                self.colors["green"]
+            ),
+            self.create_metric_card(
+                "Avg Monthly Expenses", 
+                f"€{metrics['avg_expenses']:,.2f}", 
+                self.colors["red"]
+            ),
+            self.create_metric_card(
+                "Avg Monthly Investments", 
+                f"€{metrics['avg_investments']:,.2f}", 
+                self.colors["accent"]
+            ),
+            self.create_metric_card(
+                "Last Updated", 
+                datetime.now().strftime("%d %b %Y"), 
+                self.colors["text_primary"]
+            )
+        ], style={
+            "display": "flex", 
+            "justifyContent": "center", 
+            "flexWrap": "wrap", 
+            "marginBottom": "30px"
+        })
+    
+    def create_finance_error_display(self, error_message: str, file_path: str) -> html.Div:
+        """Create error display for finance page."""
+        return html.Div([
+            html.H2("📊 Personal Finances Dashboard", style={
+                "textAlign": "center", 
+                "color": self.colors["accent"], 
+                "marginBottom": "30px"
+            }),
+            html.Div([
+                html.H4("Error Loading Finance Data", style={"color": self.colors["red"]}),
+                html.P(error_message, style={"color": self.colors["text_primary"]}),
+                html.P(f"Please ensure the file exists at: {file_path}", style={
+                    "color": self.colors["text_secondary"]
+                })
+            ], style=self.config.ui.card_style)
+        ])
+    
+    def create_finance_no_data_display(self) -> html.Div:
+        """Create no data display for finance page."""
+        return html.Div([
+            html.H2("📊 Personal Finances Dashboard", style={
+                "textAlign": "center", 
+                "color": self.colors["accent"], 
+                "marginBottom": "30px"
+            }),
+            html.Div([
+                html.H4("No Data Available", style={"color": self.colors["red"]}),
+                html.P("No valid month columns found for the specified time period.", style={
+                    "color": self.colors["text_primary"]
+                })
+            ], style=self.config.ui.card_style)
+        ])

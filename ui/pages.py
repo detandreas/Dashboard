@@ -364,15 +364,29 @@ class TradesPage(BasePage):
             df = pd.read_excel(self.config.database.trades_xlsx_path)
             df["Date"] = pd.to_datetime(df["Date"])
             df = df.sort_values("Date", ascending=False)
+
+            # Calculate P&L for each trade using the calculation service
+            calculator = self.ui_factory.calculator
+            df_with_pnl = calculator.calculate_trade_pnl(df, self.portfolio_service)
             
             # Clean up columns for display
-            display_df = df.drop(columns=["Number"], errors='ignore')
+            columns_to_remove = ["Number", "Settlement Date", "settlement date", "Fee", "Amount"]
+            display_df = df_with_pnl.drop(columns=columns_to_remove, errors='ignore')
             display_df = display_df.copy()
             display_df['Date'] = display_df['Date'].dt.strftime('%Y-%m-%d')
             
-            # Create data table
+            # Format P&L column to 2 decimal places
+            if 'P&L' in display_df.columns:
+                display_df['P&L'] = display_df['P&L'].round(2)
+            
+            # Remove original Profit column if it exists (we're replacing it with calculated P&L)
+            if 'Profit' in display_df.columns:
+                display_df = display_df.drop(columns=['Profit'])
+                
+            # Create data table with enhanced conditional formatting for P&L
             table = dash_table.DataTable(
-                columns=[{"name": col, "id": col} for col in display_df.columns],
+                columns=[{"name": col, "id": col, "type": "numeric", "format": {"specifier": ".2f"}} if col == "P&L" 
+                        else {"name": col, "id": col} for col in display_df.columns],
                 data=display_df.to_dict("records"),
                 sort_action="native",
                 filter_action="native",
@@ -392,15 +406,44 @@ class TradesPage(BasePage):
                     "border": f"1px solid {self.colors['grid']}"
                 },
                 style_data_conditional=[
+                    # Buy trades - light green background
                     {
                         'if': {'filter_query': '{Direction} = Buy'},
                         'backgroundColor': f'{self.colors["green"]}20',
                         'color': self.colors["green"],
                     },
+                    # Sell trades - light red background
                     {
                         'if': {'filter_query': '{Direction} = Sell'},
                         'backgroundColor': f'{self.colors["red"]}20',
                         'color': self.colors["red"],
+                    },
+                    # Positive P&L - green text
+                    {
+                        'if': {
+                            'filter_query': '{P&L} > 0',
+                            'column_id': 'P&L'
+                        },
+                        'color': self.colors["green"],
+                        'fontWeight': 'bold'
+                    },
+                    # Negative P&L - red text
+                    {
+                        'if': {
+                            'filter_query': '{P&L} < 0',
+                            'column_id': 'P&L'
+                        },
+                        'color': self.colors["red"],
+                        'fontWeight': 'bold'
+                    },
+                    # Zero P&L - neutral color
+                    {
+                        'if': {
+                            'filter_query': '{P&L} = 0',
+                            'column_id': 'P&L'
+                        },
+                        'color': self.colors["text_secondary"],
+                        'fontStyle': 'italic'
                     }
                 ]
             )
@@ -468,16 +511,44 @@ class FinancePage(BasePage):
     def render(self) -> html.Div:
         """Render personal finance page."""
         try:
-            # Use the existing finance_page module for main dashboard
-            from services.finance_page import build_finance_page
-            main_dashboard = build_finance_page(
-                self.config.database.finance_xlsx_path,
-                self.colors,
-                self.config.ui.card_style
+            from services.finance_service import FinanceAnalysisService
+            
+            finance_service = FinanceAnalysisService(self.config)
+            
+            # Load data with error handling
+            df, error = finance_service.load_finance_data_with_error_handling()
+            
+            if error:
+                return self.ui_factory.create_finance_error_display(
+                    error, 
+                    self.config.database.finance_xlsx_path
+                )
+            
+            # Get month columns
+            _, month_columns = finance_service.load_finance_data()
+            
+            if len(month_columns) == 0:
+                return self.ui_factory.create_finance_no_data_display()
+            
+            # Extract financial data
+            income_data, expenses_data, investments_data = finance_service.extract_financial_data(
+                df, month_columns
+            )
+            
+            # Calculate metrics
+            metrics = finance_service.calculate_financial_metrics(
+                income_data, expenses_data, investments_data
+            )
+            
+            # Create main dashboard
+            main_dashboard = self._create_main_finance_dashboard(
+                finance_service, df, month_columns, income_data, expenses_data, investments_data, metrics
             )
             
             # Add individual charts section
-            individual_charts = self._create_individual_charts()
+            individual_charts = self._create_individual_charts_consolidated(
+                finance_service, income_data, expenses_data, investments_data, month_columns
+            )
             
             return html.Div([
                 main_dashboard,
@@ -489,22 +560,41 @@ class FinancePage(BasePage):
             ])
             
         except ImportError as e:
-            logger.error(f"Could not import finance_page module: {e}")
+            logger.error(f"Could not import finance service: {e}")
             return self._create_import_error()
         except Exception as e:
             logger.error(f"Error rendering finance page: {e}")
             return self._create_general_error(str(e))
     
-    def _create_individual_charts(self) -> html.Div:
-        """Create individual charts for income, expenses, and investments."""
+    def _create_main_finance_dashboard(self, finance_service, df, month_columns, 
+                                     income_data, expenses_data, investments_data, metrics) -> html.Div:
+        """Create main finance dashboard with overview chart."""
+        # Create overview chart
+        overview_chart = finance_service.create_overview_chart(
+            income_data, expenses_data, investments_data, month_columns, self.colors
+        )
+        
+        return html.Div([
+            html.H2("📊 Personal Finances Dashboard", style={
+                "textAlign": "center", 
+                "color": self.colors["accent"], 
+                "marginBottom": "30px"
+            }),
+            
+            # Metrics cards
+            self.ui_factory.create_finance_metrics_cards(metrics),
+            
+            # Overview chart
+            html.Div([
+                self.ui_factory.create_chart_container(overview_chart)
+            ], style={"marginBottom": "20px"})
+        ])
+    
+    def _create_individual_charts_consolidated(self, finance_service, income_data, 
+                                             expenses_data, investments_data, month_columns) -> html.Div:
+        """Create individual charts using consolidated service."""
         try:
-            from services.finance_service import FinanceAnalysisService
-            
-            finance_service = FinanceAnalysisService(self.config)
-            df, month_columns = finance_service.load_finance_data()
-            income_data, expenses_data, investments_data = finance_service.extract_financial_data(df, month_columns)
-            
-            # Create charts
+            # Create charts using service
             income_chart = finance_service.create_income_chart(income_data, month_columns, self.colors)
             expenses_chart = finance_service.create_expenses_chart(expenses_data, month_columns, self.colors)
             investments_chart = finance_service.create_investments_chart(investments_data, month_columns, self.colors)
@@ -777,6 +867,7 @@ class SettingsPage(BasePage):
                 "color": self.colors["text_secondary"]
             })
         ], style=self.config.ui.card_style)
+
 
 class PageFactory:
     """Factory for creating dashboard pages with lazy loading."""

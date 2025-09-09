@@ -118,32 +118,38 @@ class DashboardApplication:
              Output("nav-tickers", "className"),
              Output("nav-portfolio", "className"),
              Output("nav-trades", "className"),
-             Output("nav-finances", "className")],
+             Output("nav-finances", "className"),
+             Output("nav-settings", "className")],
             [Input("nav-tickers", "n_clicks"),
              Input("nav-portfolio", "n_clicks"),
              Input("nav-trades", "n_clicks"),
-             Input("nav-finances", "n_clicks")]
+             Input("nav-finances", "n_clicks"),
+             Input("nav-settings", "n_clicks")]
         )
-        def handle_navigation(tickers_clicks, portfolio_clicks, trades_clicks, finances_clicks):
+        def handle_navigation(tickers_clicks, portfolio_clicks, trades_clicks, finances_clicks, settings_clicks):
             """Handle sidebar navigation clicks."""
             ctx = dash.callback_context
             if not ctx.triggered:
-                return "tickers", "nav-item active", "nav-item", "nav-item", "nav-item"
+                return "tickers", "nav-item active", "nav-item", "nav-item", "nav-item", "nav-item settings-button"
             
             button_id = ctx.triggered[0]["prop_id"].split(".")[0]
             page_map = {
                 "nav-tickers": "tickers",
                 "nav-portfolio": "portfolio", 
                 "nav-trades": "trades",
-                "nav-finances": "finances"
+                "nav-finances": "finances",
+                "nav-settings": "settings"
             }
             
             active_page = page_map.get(button_id, "tickers")
             
             # Set active classes
-            classes = ["nav-item"] * 4
+            classes = ["nav-item"] * 4 + ["nav-item settings-button"]
             page_index = list(page_map.values()).index(active_page)
-            classes[page_index] = "nav-item active"
+            if page_index < 4:
+                classes[page_index] = "nav-item active"
+            else:
+                classes[4] = "nav-item settings-button active"
             
             return active_page, *classes
         
@@ -169,6 +175,10 @@ class DashboardApplication:
                 "finances": {
                     "title": "Personal Finances",
                     "subtitle": "Income, expenses, and investment tracking"
+                },
+                "settings": {
+                    "title": "Application Settings",
+                    "subtitle": "Configure your dashboard preferences and profile"
                 }
             }
             

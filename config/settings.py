@@ -24,6 +24,34 @@ class UIConfig:
     colors: Dict[str, str]
     card_style: Dict[str, Any]
 
+class GoalsConfig:
+    """Goals and milestones configuration."""
+    
+    def __init__(self):
+        # Available goal metrics
+        self.available_metrics = {
+            "portfolio_value": {
+                "label": "Portfolio Value",
+                "unit": "$",
+                "description": "Total portfolio market value"
+            }
+        }
+        
+        # Default goal configuration
+        self.default_goal = {
+            "metric": "portfolio_value",
+            "milestones": [
+                {"amount": 10000, "label": "First Milestone", "status": "upcoming"},
+                {"amount": 25000, "label": "Second Milestone", "status": "upcoming"},
+                {"amount": 50000, "label": "Major Target", "status": "upcoming"}
+            ],
+            "active": True,
+            "created_date": None
+        }
+        
+        # Current active goal (loaded from persistence)
+        self.current_goal = None
+
 class Config:
     """Centralized configuration management."""
     
@@ -73,6 +101,7 @@ class Config:
                 "border": "1px solid #333333",
             }
         )
+        self.goals = GoalsConfig()
     
     @staticmethod
     def get_tomorrow_date() -> str:

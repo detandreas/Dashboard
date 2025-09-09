@@ -8,7 +8,7 @@ from config.settings import Config
 from services.data_service import YahooFinanceDataService
 from services.portfolio_service import PortfolioService
 from ui.components import UIComponentFactory
-from ui.pages import PageFactory
+from ui.page_factory import PageFactory
 from utils.logging_config import setup_logging
 
 """

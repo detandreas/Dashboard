@@ -515,17 +515,15 @@ class FinancePage(BasePage):
             
             finance_service = FinanceAnalysisService(self.config)
             
-            # Load data with error handling
-            df, error = finance_service.load_finance_data_with_error_handling()
-            
-            if error:
+            # Load data once with error handling
+            try:
+                df, month_columns = finance_service.load_finance_data()
+            except Exception as e:
+                error_msg = f"Error loading finance file: {str(e)}"
                 return self.ui_factory.create_finance_error_display(
-                    error, 
+                    error_msg, 
                     self.config.database.finance_xlsx_path
                 )
-            
-            # Get month columns
-            _, month_columns = finance_service.load_finance_data()
             
             if len(month_columns) == 0:
                 return self.ui_factory.create_finance_no_data_display()
@@ -648,7 +646,7 @@ class FinancePage(BasePage):
                 html.P("The finance page module could not be loaded.", style={
                     "color": self.colors["text_secondary"]
                 }),
-                html.P("Please ensure services/finance_page.py exists and is properly configured.", style={
+                html.P("Please ensure services/finance_service.py exists and is properly configured.", style={
                     "color": self.colors["text_secondary"]
                 })
             ], style=self.config.ui.card_style)

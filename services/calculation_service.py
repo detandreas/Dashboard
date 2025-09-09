@@ -195,3 +195,58 @@ class StandardCalculationService(PortfolioCalculator):
         except Exception as e:
             logger.error(f"Error calculating portfolio metrics: {e}")
             raise
+
+    def calculate_trade_pnl(self, trades_df: pd.DataFrame, portfolio_service) -> pd.DataFrame:
+        """Calculate P&L for individual trades based on current market prices."""
+        try:
+            trades_with_pnl = trades_df.copy()
+            trades_with_pnl['P&L'] = 0.0
+            
+            # Get unique tickers from trades
+            unique_tickers = trades_df['Ticker'].unique()
+            
+            # Get current prices for all tickers
+            current_prices = {}
+            for ticker in unique_tickers:
+                try:
+                    # Get current price from portfolio service
+                    portfolio = portfolio_service.get_portfolio_snapshot()
+                    ticker_data = portfolio.get_ticker_by_symbol(ticker)
+                    if ticker_data:
+                        current_prices[ticker] = ticker_data.latest_price
+                    else:
+                        logger.warning(f"No price data found for ticker {ticker}")
+                        current_prices[ticker] = 0.0
+                except Exception as e:
+                    logger.error(f"Error getting current price for {ticker}: {e}")
+                    current_prices[ticker] = 0.0
+            
+            # Calculate P&L for each trade
+            for idx, row in trades_with_pnl.iterrows():
+                ticker = row['Ticker']
+                direction = row['Direction'].strip().lower()
+                quantity = row.get('Quantity', 0)
+                trade_price = row.get('Price', 0)
+                current_price = current_prices.get(ticker, 0)
+                
+                if direction == 'buy' and current_price > 0 and quantity > 0:
+                    # For buy trades: P&L = (current_price - trade_price) * quantity
+                    pnl = (current_price - trade_price) * quantity
+                    trades_with_pnl.at[idx, 'P&L'] = pnl
+                elif direction == 'sell' and current_price > 0 and quantity > 0:
+                    # For sell trades: P&L = (trade_price - current_price) * quantity
+                    # Note: This represents the profit made from selling at trade_price vs current market
+                    pnl = (trade_price - current_price) * quantity
+                    trades_with_pnl.at[idx, 'P&L'] = pnl
+                else:
+                    trades_with_pnl.at[idx, 'P&L'] = 0.0
+            
+            logger.debug(f"Calculated P&L for {len(trades_with_pnl)} trades")
+            return trades_with_pnl
+            
+        except Exception as e:
+            logger.error(f"Error calculating trade P&L: {e}")
+            # Return original dataframe with zero P&L on error
+            trades_df_copy = trades_df.copy()
+            trades_df_copy['P&L'] = 0.0
+            return trades_df_copy

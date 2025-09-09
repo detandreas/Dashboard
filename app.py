@@ -218,7 +218,44 @@ class DashboardApplication:
             except Exception as e:
                 self.logger.error(f"Error creating summary: {e}")
                 return html.Div()
-    
+        
+        # Goal view toggle callback
+        @self.app.callback(
+            [Output("goal-progress-container", "children"),
+             Output("goal-view-overall", "className"),
+             Output("goal-view-next", "className"),
+             Output("goal-view-mode", "data")],
+            [Input("goal-view-overall", "n_clicks"),
+             Input("goal-view-next", "n_clicks")],
+            [dash.dependencies.State("goal-progress-data", "data"),
+             dash.dependencies.State("goal-view-mode", "data")],
+            prevent_initial_call=True
+        )
+        def toggle_goal_view(overall_clicks, next_clicks, progress_data, current_mode):
+            """Handle goal view toggle between overall and next milestone."""
+            if not progress_data:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            
+            if button_id == "goal-view-overall":
+                new_mode = "overall"
+                overall_class = "goal-view-btn active"
+                next_class = "goal-view-btn"
+            else:
+                new_mode = "next"
+                overall_class = "goal-view-btn"
+                next_class = "goal-view-btn active"
+            
+            # Create new visualization
+            new_content = self.ui_factory._create_progress_visualization(progress_data, new_mode)
+            
+            return new_content, overall_class, next_class, new_mode
+
     def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8050):
         """Run the dashboard application."""
         self.logger.info(f"Starting dashboard server on {host}:{port}")

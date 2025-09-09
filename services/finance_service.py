@@ -36,16 +36,6 @@ class FinanceAnalysisService:
             logger.error(f"Error loading finance data: {e}")
             raise
     
-    def load_finance_data_with_error_handling(self) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
-        """Load finance data with error handling for UI display."""
-        try:
-            df, month_columns = self.load_finance_data()
-            return df, None
-        except Exception as e:
-            error_msg = f"Error loading finance file: {str(e)}"
-            logger.error(error_msg)
-            return None, error_msg
-    
     def _get_month_columns(self, df: pd.DataFrame) -> List[str]:
         """Extract valid month columns from dataframe."""
         current_date = datetime.now()

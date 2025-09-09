@@ -300,11 +300,12 @@ class UIComponentFactory:
             ], style={
                 "padding": "25px 20px",
                 "borderBottom": "1px solid #333",
-                "background": '#00008B'
+                "background": '#00008B',
+                "flexShrink": "0"
             }),
 
             
-            # Navigation Menu
+            # Navigation Menu - takes remaining space
             html.Div([
                 html.Button([
                     html.Span(
@@ -314,11 +315,85 @@ class UIComponentFactory:
                     html.Span(item["label"], style={"fontSize": "0.95rem"}),
                 ], id=f"nav-{item['id']}", className="nav-item", n_clicks=0)
                 for item in nav_items
-            ], className="nav-menu"),
+            ], className="nav-menu", style={
+                "flex": "1",
+                "overflow": "hidden",
+                "display": "flex",
+                "flexDirection": "column",
+                "padding": "10px 0"
+            }),
+
+            # Settings Button at bottom - fixed position
+            html.Div([
+                html.Button([
+                    html.Div([
+                        html.Img(
+                            src="/assets/PATRICK.png",  # Default avatar path
+                            style={
+                                "width": "32px",
+                                "height": "32px",
+                                "borderRadius": "50%",
+                                "marginRight": "10px",
+                                "border": "2px solid rgba(255,255,255,0.3)"
+                            }
+                        ),
+                        html.Div([
+                            html.Div("Andreas Papathanasiou", style={
+                                "fontSize": "0.85rem",
+                                "fontWeight": "600",
+                                "color": self.colors["text_primary"],
+                                "lineHeight": "1.1",
+                                "whiteSpace": "nowrap",
+                                "overflow": "hidden",
+                                "textOverflow": "ellipsis"
+                            }),
+                            html.Div("Settings", style={
+                                "fontSize": "0.7rem",
+                                "color": self.colors["text_secondary"],
+                                "lineHeight": "1.1"
+                            })
+                        ], style={"flex": "1", "minWidth": "0"})
+                    ], style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "width": "100%",
+                        "minWidth": "0"
+                    }),
+                    html.Span("⚙️", style={
+                        "fontSize": "1rem",
+                        "marginLeft": "5px",
+                        "flexShrink": "0"
+                    })
+                ], id="nav-settings", className="nav-item settings-button", n_clicks=0, style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "space-between",
+                    "padding": "10px 12px",
+                    "margin": "10px",
+                    "backgroundColor": self.colors["card_bg"],
+                    "border": f"1px solid {self.colors['grid']}",
+                    "borderRadius": "8px",
+                    "cursor": "pointer",
+                    "transition": "all 0.2s ease",
+                    "minHeight": "50px",
+                    "width": "calc(100% - 20px)"
+                })
+            ], style={
+                "padding": "10px 0 15px 0",
+                "borderTop": f"1px solid {self.colors['grid']}",
+                "flexShrink": "0"
+            }),
 
             # Store for active page
             dcc.Store(id="active-page", data="tickers"),
-        ], className="sidebar")
+        ], className="sidebar", style={
+            "display": "flex", 
+            "flexDirection": "column", 
+            "height": "100vh",
+            "overflow": "hidden",
+            "width": "280px",
+            "position": "fixed"
+        })
 
     def create_footer(self) -> html.Footer:
         """Create application footer component."""

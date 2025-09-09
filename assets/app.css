@@ -88,6 +88,9 @@ body {
     padding: 30px 40px;
     border-bottom: 2px solid #2979FF;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    margin-left: 60px;
+    position: relative;
+    z-index: 100;
 }
 
 .content-body {

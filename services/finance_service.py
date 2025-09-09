@@ -2,17 +2,17 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import re
 from datetime import datetime
 import plotly.graph_objects as go
-
+from dash import html, dcc
 from config.settings import Config
 
 logger = logging.getLogger(__name__)
 
 class FinanceAnalysisService:
-    """Service for financial analysis and calculations."""
+    """Consolidated service for financial analysis and calculations."""
     
     def __init__(self, config: Config):
         self.config = config
@@ -169,6 +169,10 @@ class FinanceAnalysisService:
         
         return display_names
     
+    def get_month_labels_for_chart(self, month_columns: List[str]) -> List[str]:
+        """Get month labels formatted for chart display."""
+        return [col.replace(' ', '<br>') for col in month_columns]
+    
     def analyze_trends(self, income_data: pd.Series, expenses_data: pd.Series, 
                       investments_data: pd.Series, months: List[int]) -> dict:
         """Analyze trends for all financial categories."""
@@ -223,7 +227,10 @@ class FinanceAnalysisService:
             mode='lines+markers',
             name='Income',
             line=dict(color=colors["green"], width=3),
-            marker=dict(size=8)
+            marker=dict(size=8),
+            hovertemplate='<b>Income</b><br>' +
+                         'Month: %{x}<br>' +
+                         'Amount: €%{y:,.2f}<extra></extra>'
         ))
         
         # Add regression line
@@ -236,13 +243,14 @@ class FinanceAnalysisService:
         ))
         
         fig.update_layout(
-            title="Monthly Income",
+            title="Monthly Income Analysis",
             xaxis_title="Month",
             yaxis_title="Income (€)",
             template="plotly_dark",
             height=400,
             plot_bgcolor=colors["card_bg"],
-            paper_bgcolor=colors["card_bg"]
+            paper_bgcolor=colors["card_bg"],
+            font=dict(color=colors["text_primary"])
         )
         
         return fig
@@ -264,7 +272,10 @@ class FinanceAnalysisService:
             mode='lines+markers',
             name='Expenses',
             line=dict(color=colors["red"], width=3),
-            marker=dict(size=8)
+            marker=dict(size=8),
+            hovertemplate='<b>Expenses</b><br>' +
+                         'Month: %{x}<br>' +
+                         'Amount: €%{y:,.2f}<extra></extra>'
         ))
         
         # Add regression line
@@ -277,13 +288,14 @@ class FinanceAnalysisService:
         ))
         
         fig.update_layout(
-            title="Monthly Expenses",
+            title="Monthly Expenses Analysis",
             xaxis_title="Month",
             yaxis_title="Expenses (€)",
             template="plotly_dark",
             height=400,
             plot_bgcolor=colors["card_bg"],
-            paper_bgcolor=colors["card_bg"]
+            paper_bgcolor=colors["card_bg"],
+            font=dict(color=colors["text_primary"])
         )
         
         return fig
@@ -305,7 +317,10 @@ class FinanceAnalysisService:
             mode='lines+markers',
             name='Investments',
             line=dict(color=colors["accent"], width=3),
-            marker=dict(size=8)
+            marker=dict(size=8),
+            hovertemplate='<b>Investments</b><br>' +
+                         'Month: %{x}<br>' +
+                         'Amount: €%{y:,.2f}<extra></extra>'
         ))
         
         # Add regression line
@@ -318,13 +333,79 @@ class FinanceAnalysisService:
         ))
         
         fig.update_layout(
-            title="Monthly Investments",
+            title="Monthly Investments Analysis",
             xaxis_title="Month",
             yaxis_title="Investments (€)",
             template="plotly_dark",
             height=400,
             plot_bgcolor=colors["card_bg"],
-            paper_bgcolor=colors["card_bg"]
+            paper_bgcolor=colors["card_bg"],
+            font=dict(color=colors["text_primary"])
+        )
+        
+        return fig
+    
+    def create_overview_chart(self, income_data: pd.Series, expenses_data: pd.Series, 
+                             investments_data: pd.Series, month_columns: List[str], colors: dict) -> go.Figure:
+        """Create combined overview chart of all financial categories."""
+        months = list(range(len(month_columns)))
+        month_labels = self.get_month_labels_for_chart(month_columns)
+        month_names = self.get_month_display_names(month_columns)
+        
+        fig = go.Figure([
+            go.Scatter(
+                x=months, 
+                y=income_data.values, 
+                mode='markers+lines', 
+                name='Income', 
+                line=dict(color='red', width=3), 
+                marker=dict(size=8),
+                hovertemplate='<b>%{fullData.name}</b><br>' +
+                             'Month: %{customdata}<br>' +
+                             'Amount: €%{y:,.2f}' +
+                             '<extra></extra>',
+                customdata=month_names
+            ),
+            go.Scatter(
+                x=months, 
+                y=expenses_data.values, 
+                mode='markers+lines', 
+                name='Expenses', 
+                line=dict(color='blue', width=3), 
+                marker=dict(size=8),
+                hovertemplate='<b>%{fullData.name}</b><br>' +
+                             'Month: %{customdata}<br>' +
+                             'Amount: €%{y:,.2f}' +
+                             '<extra></extra>',
+                customdata=month_names
+            ),
+            go.Scatter(
+                x=months, 
+                y=investments_data.values, 
+                mode='markers+lines', 
+                name='Investments', 
+                line=dict(color='green', width=3), 
+                marker=dict(size=8),
+                hovertemplate='<b>%{fullData.name}</b><br>' +
+                             'Month: %{customdata}<br>' +
+                             'Amount: €%{y:,.2f}' +
+                             '<extra></extra>',
+                customdata=month_names
+            )
+        ])
+        
+        fig.update_layout(
+            title="Financial Overview - All Categories",
+            template="plotly_dark",
+            height=500,
+            xaxis_title="Months",
+            yaxis_title="Amount (€)",
+            xaxis=dict(tickvals=months, ticktext=month_labels),
+            plot_bgcolor=colors["card_bg"],
+            paper_bgcolor=colors["card_bg"],
+            font=dict(color=colors["text_primary"]),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            hovermode="x unified"
         )
         
         return fig

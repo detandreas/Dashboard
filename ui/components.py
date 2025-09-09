@@ -300,11 +300,12 @@ class UIComponentFactory:
             ], style={
                 "padding": "25px 20px",
                 "borderBottom": "1px solid #333",
-                "background": '#00008B'
+                "background": '#00008B',
+                "flexShrink": "0"
             }),
 
             
-            # Navigation Menu
+            # Navigation Menu - takes remaining space
             html.Div([
                 html.Button([
                     html.Span(
@@ -314,11 +315,85 @@ class UIComponentFactory:
                     html.Span(item["label"], style={"fontSize": "0.95rem"}),
                 ], id=f"nav-{item['id']}", className="nav-item", n_clicks=0)
                 for item in nav_items
-            ], className="nav-menu"),
+            ], className="nav-menu", style={
+                "flex": "1",
+                "overflow": "hidden",
+                "display": "flex",
+                "flexDirection": "column",
+                "padding": "10px 0"
+            }),
+
+            # Settings Button at bottom - fixed position
+            html.Div([
+                html.Button([
+                    html.Div([
+                        html.Img(
+                            src="/assets/PATRICK.png",  # Default avatar path
+                            style={
+                                "width": "32px",
+                                "height": "32px",
+                                "borderRadius": "50%",
+                                "marginRight": "10px",
+                                "border": "2px solid rgba(255,255,255,0.3)"
+                            }
+                        ),
+                        html.Div([
+                            html.Div("Andreas Papathanasiou", style={
+                                "fontSize": "0.85rem",
+                                "fontWeight": "600",
+                                "color": self.colors["text_primary"],
+                                "lineHeight": "1.1",
+                                "whiteSpace": "nowrap",
+                                "overflow": "hidden",
+                                "textOverflow": "ellipsis"
+                            }),
+                            html.Div("Settings", style={
+                                "fontSize": "0.7rem",
+                                "color": self.colors["text_secondary"],
+                                "lineHeight": "1.1"
+                            })
+                        ], style={"flex": "1", "minWidth": "0"})
+                    ], style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "width": "100%",
+                        "minWidth": "0"
+                    }),
+                    html.Span("⚙️", style={
+                        "fontSize": "1rem",
+                        "marginLeft": "5px",
+                        "flexShrink": "0"
+                    })
+                ], id="nav-settings", className="nav-item settings-button", n_clicks=0, style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "space-between",
+                    "padding": "10px 12px",
+                    "margin": "10px",
+                    "backgroundColor": self.colors["card_bg"],
+                    "border": f"1px solid {self.colors['grid']}",
+                    "borderRadius": "8px",
+                    "cursor": "pointer",
+                    "transition": "all 0.2s ease",
+                    "minHeight": "50px",
+                    "width": "calc(100% - 20px)"
+                })
+            ], style={
+                "padding": "10px 0 15px 0",
+                "borderTop": f"1px solid {self.colors['grid']}",
+                "flexShrink": "0"
+            }),
 
             # Store for active page
             dcc.Store(id="active-page", data="tickers"),
-        ], className="sidebar")
+        ], className="sidebar", style={
+            "display": "flex", 
+            "flexDirection": "column", 
+            "height": "100vh",
+            "overflow": "hidden",
+            "width": "280px",
+            "position": "fixed"
+        })
 
     def create_footer(self) -> html.Footer:
         """Create application footer component."""
@@ -369,17 +444,17 @@ class UIComponentFactory:
                 ),
                 self.create_metric_card(
                     "Invested",
-                    f"€{portfolio.total_metrics.invested:.2f}",
+                    f"${portfolio.total_metrics.invested:.2f}",
                     self.colors["text_primary"],
                 ),
                 self.create_metric_card(
                     "Total Portfolio Value",
-                    f"€{portfolio.total_metrics.current_value:.2f}",
+                    f"${portfolio.total_metrics.current_value:.2f}",
                     self.colors["accent"],
                 ),
                 self.create_metric_card(
                     "Total P&L",
-                    f"€{portfolio.total_metrics.profit_absolute:.2f}",
+                    f"${portfolio.total_metrics.profit_absolute:.2f}",
                     self.colors["green"]
                     if portfolio.total_metrics.is_profitable
                     else self.colors["red"],
@@ -392,4 +467,215 @@ class UIComponentFactory:
                     else self.colors["red"],
                 ),
             ], style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"}),
+        ])
+
+    def create_portfolio_composition(self, portfolio: PortfolioSnapshot) -> html.Div:
+        """Create portfolio composition pie chart with breakdown."""
+        try:
+            # Filter tickers with investments, excluding USD/EUR
+            invested_tickers = [
+                ticker for ticker in portfolio.tickers 
+                if ticker.metrics.invested > 0 and ticker.symbol not in ['USD', 'EUR', 'USD/EUR']
+            ]
+            
+            if not invested_tickers:
+                return html.Div([
+                    html.H3("Portfolio Composition", style={
+                        "textAlign": "center",
+                        "color": self.colors["text_secondary"]
+                    }),
+                    html.P("No investment data available", style={
+                        "textAlign": "center",
+                        "color": self.colors["text_secondary"]
+                    })
+                ], style=self.config.ui.card_style)
+            
+            # Prepare data for pie chart
+            symbols = [ticker.symbol for ticker in invested_tickers]
+            values = [ticker.metrics.invested for ticker in invested_tickers]
+            percentages = [value / sum(values) * 100 for value in values]
+            
+            # Calculate total portfolio value for center display
+            total_portfolio_value = sum(ticker.metrics.current_value for ticker in invested_tickers)
+            
+            # Create pie chart
+            fig = go.Figure(data=[go.Pie(
+                labels=symbols,
+                values=values,
+                hole=0.4,
+                textinfo='label+percent',
+                textposition='auto',
+                hovertemplate='<b>%{label}</b><br>' +
+                             'Invested: $%{value:,.2f}<br>' +
+                             'Percentage: %{percent}<br>' +
+                             '<extra></extra>',
+                marker=dict(
+                    colors=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'],
+                    line=dict(color='#000000', width=2)
+                )
+            )])
+            
+            # Add total portfolio value text in the center
+            fig.add_annotation(
+                text=f"<br>${total_portfolio_value:,.2f}",
+                x=0.5, y=0.5,
+                font=dict(size=16, color=self.colors["text_primary"]),
+                showarrow=False,
+                align="center"
+            )
+            
+            fig.update_layout(
+                height=400,
+                template="plotly_dark",
+                title={
+                    "text": "Portfolio Composition",
+                    "font": {"size": 18, "color": self.colors["text_primary"]},
+                    "y": 0.95, "x": 0.5, "xanchor": "center", "yanchor": "top"
+                },
+                plot_bgcolor=self.colors["card_bg"],
+                paper_bgcolor=self.colors["card_bg"],
+                font=dict(color=self.colors["text_primary"]),
+                showlegend=False,
+                margin=dict(l=20, r=20, t=60, b=20)
+            )
+            
+            # Create breakdown list
+            breakdown_items = []
+            for ticker, percentage, value in zip(symbols, percentages, values):
+                breakdown_items.append(
+                    html.Div([
+                        html.Div([
+                            html.Span(ticker, style={
+                                "fontWeight": "bold",
+                                "fontSize": "1.1rem",
+                                "color": self.colors["accent"]
+                            }),
+                            html.Span(f"{percentage:.1f}%", style={
+                                "float": "right",
+                                "fontWeight": "bold",
+                                "color": self.colors["text_primary"]
+                            })
+                        ], style={"marginBottom": "5px"}),
+                        html.Div(f"${value:,.2f}", style={
+                            "color": self.colors["text_secondary"],
+                            "fontSize": "0.9rem"
+                        })
+                    ], style={
+                        "padding": "15px",
+                        "marginBottom": "10px",
+                        "backgroundColor": self.colors["background"],
+                        "borderRadius": "8px",
+                        "border": f"1px solid {self.colors['grid']}"
+                    })
+                )
+            
+            return html.Div([
+                html.H3("Portfolio Composition", style={
+                    "textAlign": "center",
+                    "color": self.colors["accent"],
+                    "marginBottom": "20px"
+                }),
+                html.Div([
+                    # Pie chart on the left
+                    html.Div([
+                        dcc.Graph(figure=fig)
+                    ], style={
+                        "width": "60%",
+                        "display": "inline-block",
+                        "verticalAlign": "top"
+                    }),
+                    # Breakdown on the right
+                    html.Div([
+                        html.H4("Investment Breakdown", style={
+                            "color": self.colors["text_primary"],
+                            "marginBottom": "20px",
+                            "textAlign": "center"
+                        }),
+                        html.Div(breakdown_items)
+                    ], style={
+                        "width": "38%",
+                        "display": "inline-block",
+                        "verticalAlign": "top",
+                        "paddingLeft": "20px"
+                    })
+                ], style={"width": "100%"})
+            ], style={
+                **self.config.ui.card_style,
+                "marginBottom": "30px"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creating portfolio composition: {e}")
+            return html.Div([
+                html.H3("Portfolio Composition", style={
+                    "color": self.colors["red"],
+                    "textAlign": "center"
+                }),
+                html.P(f"Error loading composition: {str(e)}", style={
+                    "textAlign": "center",
+                    "color": self.colors["text_secondary"]
+                })
+            ], style=self.config.ui.card_style)
+
+    def create_finance_metrics_cards(self, metrics: dict) -> html.Div:
+        """Create metrics cards for finance dashboard."""
+        return html.Div([
+            self.create_metric_card(
+                "Avg Monthly Income", 
+                f"€{metrics['avg_income']:,.2f}", 
+                self.colors["green"]
+            ),
+            self.create_metric_card(
+                "Avg Monthly Expenses", 
+                f"€{metrics['avg_expenses']:,.2f}", 
+                self.colors["red"]
+            ),
+            self.create_metric_card(
+                "Avg Monthly Investments", 
+                f"€{metrics['avg_investments']:,.2f}", 
+                self.colors["accent"]
+            ),
+            self.create_metric_card(
+                "Last Updated", 
+                datetime.now().strftime("%d %b %Y"), 
+                self.colors["text_primary"]
+            )
+        ], style={
+            "display": "flex", 
+            "justifyContent": "center", 
+            "flexWrap": "wrap", 
+            "marginBottom": "30px"
+        })
+    
+    def create_finance_error_display(self, error_message: str, file_path: str) -> html.Div:
+        """Create error display for finance page."""
+        return html.Div([
+            html.H2("📊 Personal Finances Dashboard", style={
+                "textAlign": "center", 
+                "color": self.colors["accent"], 
+                "marginBottom": "30px"
+            }),
+            html.Div([
+                html.H4("Error Loading Finance Data", style={"color": self.colors["red"]}),
+                html.P(error_message, style={"color": self.colors["text_primary"]}),
+                html.P(f"Please ensure the file exists at: {file_path}", style={
+                    "color": self.colors["text_secondary"]
+                })
+            ], style=self.config.ui.card_style)
+        ])
+    
+    def create_finance_no_data_display(self) -> html.Div:
+        """Create no data display for finance page."""
+        return html.Div([
+            html.H2("📊 Personal Finances Dashboard", style={
+                "textAlign": "center", 
+                "color": self.colors["accent"], 
+                "marginBottom": "30px"
+            }),
+            html.Div([
+                html.H4("No Data Available", style={"color": self.colors["red"]}),
+                html.P("No valid month columns found for the specified time period.", style={
+                    "color": self.colors["text_primary"]
+                })
+            ], style=self.config.ui.card_style)
         ])

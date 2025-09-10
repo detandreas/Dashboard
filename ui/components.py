@@ -1,7 +1,7 @@
 from datetime import datetime
 from dash import html, dcc
 import plotly.graph_objects as go
-from typing import Optional, List
+from typing import Optional, List, Dict
 import logging
 
 from models.portfolio import (
@@ -678,4 +678,199 @@ class UIComponentFactory:
                     "color": self.colors["text_primary"]
                 })
             ], style=self.config.ui.card_style)
+        ])
+
+    def create_goal_card(self, goals_service, portfolio_value: float) -> Optional[html.Div]:
+        """Create goal progress card for portfolio page."""
+        if not goals_service.has_active_goal():
+            return None
+        
+        try:
+            progress_data = goals_service.calculate_progress(portfolio_value)
+            if not progress_data:
+                return None
+            
+            return html.Div([
+                # Header with toggle
+                html.Div([
+                    html.H4("Portfolio Value Goal", style={
+                        "color": self.colors["accent"],
+                        "margin": "0",
+                        "flex": "1"
+                    }),
+                    html.Div([
+                        html.Button("Overall", id="goal-view-overall", 
+                                  className="goal-view-btn active", n_clicks=0),
+                        html.Button("Next", id="goal-view-next", 
+                                  className="goal-view-btn", n_clicks=0)
+                    ], style={
+                        "display": "flex",
+                        "backgroundColor": self.colors["background"],
+                        "borderRadius": "6px",
+                        "padding": "2px"
+                    })
+                ], style={
+                    "display": "flex",
+                    "justifyContent": "space-between",
+                    "alignItems": "center",
+                    "marginBottom": "20px"
+                }),
+                
+                # Progress visualization
+                html.Div(id="goal-progress-container", children=[
+                    self._create_progress_visualization(progress_data, "overall")
+                ]),
+                
+                # Store for view mode and progress data
+                dcc.Store(id="goal-view-mode", data="overall"),
+                dcc.Store(id="goal-progress-data", data=progress_data)
+                
+            ], style={
+                **self.config.ui.card_style,
+                "marginBottom": "30px"
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creating goal card: {e}")
+            return None
+    
+    def _create_progress_visualization(self, progress_data: Dict, view_mode: str) -> html.Div:
+        """Create progress bar visualization."""
+        milestones = progress_data["milestones"]
+        current_value = progress_data["current_value"]
+        
+        if view_mode == "overall":
+            return self._create_overall_progress(progress_data, milestones, current_value)
+        else:
+            return self._create_next_milestone_progress(progress_data)
+    
+    def _create_overall_progress(self, progress_data: Dict, milestones: List[Dict], current_value: float) -> html.Div:
+        """Create overall progress visualization with milestone markers."""
+        total_target = milestones[-1]["amount"]
+        progress_percent = progress_data["overall"]["progress_percent"]
+        
+        # Create milestone markers
+        markers = []
+        for i, milestone in enumerate(milestones):
+            position = (milestone["amount"] / total_target) * 100
+            is_reached = milestone["status"] == "reached"
+            
+            marker_color = self.colors["green"] if is_reached else self.colors["text_secondary"]
+            
+            markers.append(
+                html.Div([
+                    # Marker dot
+                    html.Div(style={
+                        "width": "12px",
+                        "height": "12px",
+                        "borderRadius": "50%",
+                        "backgroundColor": marker_color,
+                        "border": f"2px solid {self.colors['card_bg']}",
+                        "position": "absolute",
+                        "top": "-6px",
+                        "left": "-6px",
+                        "zIndex": "10"
+                    }),
+                    # Label
+                    html.Div([
+                        html.Div(f"${milestone['amount']:,.0f}", style={
+                            "fontSize": "0.8rem",
+                            "fontWeight": "bold",
+                            "color": marker_color
+                        }),
+                        html.Div(milestone["label"], style={
+                            "fontSize": "0.7rem",
+                            "color": self.colors["text_secondary"],
+                            "whiteSpace": "nowrap"
+                        })
+                    ], style={
+                        "position": "absolute",
+                        "top": "20px",
+                        "left": "50%",
+                        "transform": "translateX(-50%)",
+                        "textAlign": "center",
+                        "minWidth": "60px"
+                    })
+                ], style={
+                    "position": "absolute",
+                    "left": f"{position}%",
+                    "transform": "translateX(-50%)"
+                })
+            )
+        
+        return html.Div([
+            # Progress bar container
+            html.Div([
+                # Background bar
+                html.Div(style={
+                    "width": "100%",
+                    "height": "8px",
+                    "backgroundColor": self.colors["grid"],
+                    "borderRadius": "4px",
+                    "position": "relative"
+                }),
+                # Progress fill
+                html.Div(style={
+                    "width": f"{progress_percent}%",
+                    "height": "8px",
+                    "backgroundColor": self.colors["accent"],
+                    "borderRadius": "4px",
+                    "position": "absolute",
+                    "top": "0",
+                    "left": "0",
+                    "transition": "width 0.3s ease"
+                }),
+                # Milestone markers
+                *markers
+            ], style={
+                "position": "relative",
+                "margin": "30px 0 50px 0"
+            }),
+            
+            # Progress text
+            html.Div(progress_data["overall"]["text"], style={
+                "textAlign": "center",
+                "color": self.colors["text_primary"],
+                "fontSize": "1.1rem",
+                "fontWeight": "500"
+            })
+        ])
+    
+    def _create_next_milestone_progress(self, progress_data: Dict) -> html.Div:
+        """Create next milestone progress visualization."""
+        next_data = progress_data["next_milestone"]
+        progress_percent = next_data["progress_percent"]
+        
+        return html.Div([
+            # Progress bar
+            html.Div([
+                html.Div(style={
+                    "width": "100%",
+                    "height": "12px",
+                    "backgroundColor": self.colors["grid"],
+                    "borderRadius": "6px",
+                    "position": "relative"
+                }),
+                html.Div(style={
+                    "width": f"{progress_percent}%",
+                    "height": "12px",
+                    "backgroundColor": self.colors["green"],
+                    "borderRadius": "6px",
+                    "position": "absolute",
+                    "top": "0",
+                    "left": "0",
+                    "transition": "width 0.3s ease"
+                })
+            ], style={
+                "position": "relative",
+                "margin": "20px 0"
+            }),
+            
+            # Progress text
+            html.Div(next_data["text"], style={
+                "textAlign": "center",
+                "color": self.colors["text_primary"],
+                "fontSize": "1.1rem",
+                "fontWeight": "500"
+            })
         ])

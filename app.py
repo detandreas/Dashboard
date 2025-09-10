@@ -1,7 +1,7 @@
 import logging
 import dash
-from dash import html
-from dash.dependencies import Input, Output
+from dash import html, dcc
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
 from config.settings import Config
@@ -253,8 +253,111 @@ class DashboardApplication:
             
             # Create new visualization
             new_content = self.ui_factory._create_progress_visualization(progress_data, new_mode)
-            
+
             return new_content, overall_class, next_class, new_mode
+
+        @self.app.callback(
+            Output("goals-modal", "style"),
+            [Input("add-goal-btn", "n_clicks"),
+             Input("edit-goal-btn", "n_clicks"),
+             Input("close-goals-modal", "n_clicks"),
+             Input("goals-cancel-btn", "n_clicks")],
+            prevent_initial_call=True
+        )
+        def toggle_goals_modal(add_clicks, edit_clicks, close_clicks, cancel_clicks):
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                return dash.no_update
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            if button_id in ["add-goal-btn", "edit-goal-btn"]:
+                return {"display": "block"}
+            return {"display": "none"}
+
+        @self.app.callback(
+            [Output("goals-modal-step", "data"),
+             Output("goals-step-indicator", "children"),
+             Output("goals-modal-content", "children"),
+             Output("goals-next-btn", "style"),
+             Output("goals-save-btn", "style")],
+            [Input("goals-next-btn", "n_clicks"),
+             Input("goals-save-btn", "n_clicks")],
+            [State("goals-modal-step", "data"),
+             State("goals-metric-selection", "value"),
+             State("goals-milestone-1", "value"),
+             State("goals-milestone-2", "value"),
+             State("goals-milestone-3", "value"),
+             State("goals-milestone-4", "value"),
+             State("goals-milestone-5", "value"),
+             State("goals-milestone-6", "value"),
+             State("goals-milestone-7", "value"),
+             State("goals-milestone-8", "value"),
+             State("goals-milestone-9", "value"),
+             State("goals-milestone-10", "value")],
+            prevent_initial_call=True
+        )
+        def handle_goal_steps(next_clicks, save_clicks, step, metric,
+                              m1, m2, m3, m4, m5, m6, m7, m8, m9, m10):
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            settings_page = self.page_factory.create_page("settings")
+            milestones_values = [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10]
+            if button_id == "goals-next-btn":
+                if step == 1:
+                    return 2, settings_page._create_step_indicator(2), settings_page._create_step_2_content(), {"display": "block"}, {"display": "none"}
+                if step == 2:
+                    milestones = []
+                    for i, val in enumerate(milestones_values, 1):
+                        if val is not None:
+                            milestones.append({"amount": float(val), "label": f"Milestone {i}"})
+                    milestones.sort(key=lambda x: x["amount"])
+                    return 3, settings_page._create_step_indicator(3), settings_page._create_step_3_content(metric, milestones), {"display": "none"}, {"display": "block"}
+            return step, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+        @self.app.callback(
+            Output("goals-milestones-container", "children"),
+            Input("goals-milestone-count", "value")
+        )
+        def update_milestone_fields(count):
+            if not count:
+                return []
+            fields = []
+            for i in range(1, count + 1):
+                fields.append(dcc.Input(id=f"goals-milestone-{i}", type="number", placeholder=f"Milestone {i}"))
+            return fields
+
+        @self.app.callback(
+            Output("goals-section", "children"),
+            Input("goals-save-btn", "n_clicks"),
+            [State("goals-metric-selection", "value"),
+             State("goals-milestone-1", "value"),
+             State("goals-milestone-2", "value"),
+             State("goals-milestone-3", "value"),
+             State("goals-milestone-4", "value"),
+             State("goals-milestone-5", "value"),
+             State("goals-milestone-6", "value"),
+             State("goals-milestone-7", "value"),
+             State("goals-milestone-8", "value"),
+             State("goals-milestone-9", "value"),
+             State("goals-milestone-10", "value")],
+            prevent_initial_call=True
+        )
+        def save_goal(n_clicks, metric,
+                      m1, m2, m3, m4, m5, m6, m7, m8, m9, m10):
+            if not n_clicks:
+                return dash.no_update
+            values = [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10]
+            milestones = []
+            for i, val in enumerate(values, 1):
+                if val is not None:
+                    milestones.append({"amount": float(val), "label": f"Milestone {i}"})
+            milestones.sort(key=lambda x: x["amount"])
+            settings_page = self.page_factory.create_page("settings")
+            if settings_page.goals_service.create_goal(metric, milestones):
+                section = settings_page._create_goals_section()
+                return section.children
+            return dash.no_update
 
     def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8050):
         """Run the dashboard application."""

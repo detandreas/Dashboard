@@ -91,7 +91,7 @@ class SettingsPage(BasePage):
                 "marginBottom": "20px"
             }),
             content
-        ], style={
+        ], id="goals-section", style={
             **self.config.ui.card_style,
             "marginBottom": "30px"
         })
@@ -215,7 +215,39 @@ class SettingsPage(BasePage):
                 style={"color": self.colors["text_primary"]}
             )
         ])
-    
+
+    def _create_step_2_content(self) -> html.Div:
+        """Create step 2 content - milestones configuration."""
+        return html.Div([
+            html.H4("Milestones", style={
+                "color": self.colors["text_primary"],
+                "marginBottom": "20px"
+            }),
+            dcc.Slider(
+                id="goals-milestone-count",
+                min=1,
+                max=10,
+                step=1,
+                value=3
+            ),
+            html.Div(id="goals-milestones-container", style={"marginTop": "20px"})
+        ])
+
+    def _create_step_3_content(self, metric: str, milestones: list) -> html.Div:
+        """Create step 3 content - confirmation summary."""
+        items = [html.Li(f"${m['amount']:,.0f} - {m['label']}") for m in milestones]
+        return html.Div([
+            html.H4("Confirm Goal", style={
+                "color": self.colors["text_primary"],
+                "marginBottom": "20px"
+            }),
+            html.P(
+                f"Metric: {metric.replace('_', ' ').title()}",
+                style={"color": self.colors["text_secondary"], "marginBottom": "10px"}
+            ),
+            html.Ul(items)
+        ])
+
     def _create_user_profile_section(self) -> html.Div:
         """Create user profile settings section."""
         return html.Div([

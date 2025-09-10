@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 class PageFactory:
     """Factory for creating dashboard pages with lazy loading."""
     
-    def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory, config: Config):
+    def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory, config: Config, goal_service=None):
         self.portfolio_service = portfolio_service
         self.ui_factory = ui_factory
         self.config = config
+        self.goal_service = goal_service
         
         # Page registry - lazy initialization to avoid circular imports
         self._page_registry = {
@@ -61,7 +62,7 @@ class PageFactory:
     
     def _create_portfolio_page(self) -> PortfolioPage:
         """Create portfolio overview page."""
-        return PortfolioPage(self.portfolio_service, self.ui_factory)
+        return PortfolioPage(self.portfolio_service, self.ui_factory, self.goal_service)
     
     def _create_trades_page(self) -> TradesPage:
         """Create trades history page."""

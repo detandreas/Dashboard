@@ -12,9 +12,10 @@ logger = logging.getLogger(__name__)
 class PortfolioPage(BasePage):
     """Portfolio overview page."""
     
-    def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory):
+    def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory, goal_service=None):
         super().__init__(ui_factory)
         self.portfolio_service = portfolio_service
+        self.goal_service = goal_service
     
     
     def render(self) -> html.Div:
@@ -25,6 +26,9 @@ class PortfolioPage(BasePage):
             sections = [
                 # Portfolio composition pie chart
                 self.ui_factory.create_portfolio_composition(portfolio),
+                
+                # Goal progress bar
+                self._create_goal_section(portfolio),
                 
                 # Portfolio profit chart with current profit/loss above
                 self._create_profit_section(portfolio),
@@ -249,6 +253,26 @@ class PortfolioPage(BasePage):
             yield_cards,
             self.ui_factory.create_chart_container(fig)
         ])
+    
+    def _create_goal_section(self, portfolio: PortfolioSnapshot) -> html.Div:
+        """Δημιουργεί το goal progress section."""
+        if not self.goal_service:
+            return html.Div()  # Δεν εμφανίζει τίποτα αν δεν υπάρχει goal service
+        
+        try:
+            current_value = portfolio.total_metrics.current_value
+            goal_data = self.goal_service.update_milestone_status(current_value)
+            
+            return self.ui_factory.create_goal_progress_bar(goal_data)
+            
+        except Exception as e:
+            logger.error(f"Error creating goal section: {e}")
+            return html.Div([
+                html.P("Error loading goals", style={
+                    "color": self.colors["red"],
+                    "textAlign": "center"
+                })
+            ], style=self.config.ui.card_style)
     
     def _create_error_message(self, error: str) -> html.Div:
         """Create error message display."""

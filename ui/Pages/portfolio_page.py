@@ -15,26 +15,7 @@ class PortfolioPage(BasePage):
     def __init__(self, portfolio_service: PortfolioService, ui_factory: UIComponentFactory):
         super().__init__(ui_factory)
         self.portfolio_service = portfolio_service
-        # Initialize goals service
-        try:
-            from services.goals_service import GoalsService
-            self.goals_service = GoalsService()
-            # Create a test goal if none exists
-            self._ensure_test_goal()
-        except ImportError:
-            logger.warning("Goals service not available")
-            self.goals_service = None
     
-    def _ensure_test_goal(self):
-        """Create a test goal if none exists for demonstration."""
-        if not self.goals_service.has_active_goal():
-            test_milestones = [
-                {"amount": 10000, "label": "First Target"},
-                {"amount": 25000, "label": "Growth Milestone"},
-                {"amount": 50000, "label": "Major Goal"}
-            ]
-            self.goals_service.create_goal("portfolio_value", test_milestones)
-            logger.info("Created test goal for demonstration")
     
     def render(self) -> html.Div:
         """Render portfolio overview."""
@@ -43,26 +24,14 @@ class PortfolioPage(BasePage):
             
             sections = [
                 # Portfolio composition pie chart
-                self.ui_factory.create_portfolio_composition(portfolio)
-            ]
-            
-            # Add goal card after portfolio composition
-            if self.goals_service and self.goals_service.has_active_goal():
-                goal_card = self.ui_factory.create_goal_card(
-                    self.goals_service, 
-                    portfolio.total_metrics.current_value
-                )
-                if goal_card:
-                    sections.append(goal_card)
-            
-            # Add remaining sections
-            sections.extend([
+                self.ui_factory.create_portfolio_composition(portfolio),
+                
                 # Portfolio profit chart with current profit/loss above
                 self._create_profit_section(portfolio),
                 
                 # Portfolio yield chart
                 self._create_yield_section(portfolio)
-            ])
+            ]
             
             return html.Div(sections)
             

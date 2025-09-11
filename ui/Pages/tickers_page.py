@@ -46,7 +46,7 @@ class TickersPage(BasePage):
         """Create ticker overview section with selector and cards."""
         # Create ticker selector dropdown
         ticker_options = [
-            {"label": f"{ticker.symbol} - {ticker.symbol}", "value": ticker.symbol}
+            {"label": f"{ticker.symbol}", "value": ticker.symbol}
             for ticker in traded_tickers
         ]
         

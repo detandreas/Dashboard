@@ -73,9 +73,10 @@ class TickersPage(BasePage):
                     }
                 )
             ], style={
+                **self.config.ui.card_style,
+                "margin": "0",
                 "marginBottom": "20px",
                 "padding": "20px",
-                **self.config.ui.card_style
             }),
             
             # Performance cards for selected ticker

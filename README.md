@@ -15,7 +15,7 @@ python app.py
 ## Features
 - **Fixed Sidebar Navigation**: Clean, professional sidebar with active state indicators
 - **Individual Tickers**: Track performance of each ticker separately
-- **Portfolio Overview**: Comprehensive portfolio analytics with profit/loss tracking
+- **Portfolio Overview**: Comprehensive portfolio analytics with P&L tracking
 - **Trading History**: Complete transaction history with filtering and sorting
 - **Personal Finances**: Income, expenses, and investment tracking
 - Real-time portfolio tracking with Yahoo Finance data
@@ -32,4 +32,5 @@ The dashboard features a fixed sidebar with four main sections:
 
 Each section has a dedicated page header and content area. The sidebar remains visible at all times with clear visual indicators for the active page.
 
-Access the dashboard at `http://localhost:8050`.
+
+Access the dashboard at `http://localhost:8051`.

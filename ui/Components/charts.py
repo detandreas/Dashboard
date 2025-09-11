@@ -381,41 +381,55 @@ class ChartComponentsMixin:
         ])
 
     def create_side_metric_card(
-        self, 
-        title: str, 
-        value: str, 
-        color: str, 
-        subtitle: str = ""
+    self, 
+    title: str, 
+    value: str, 
+    color: str, 
+    subtitle: str = ""
     ) -> html.Div:
-        """Δημιουργεί side metric card για τα metrics containers."""
+        """Δημιουργεί side metric card για τα metrics containers με hover animations."""
         return html.Div([
             html.Div([
                 html.H5(title, style={
                     "color": self.colors["text_primary"],
                     "margin": "0 0 8px 0",
                     "fontSize": "0.9rem",
-                    "fontWeight": "normal"
+                    "fontWeight": "normal",
+                    "position": "relative",
+                    "zIndex": "1",
+                    "transition": "all 0.3s ease"
                 }),
                 html.Div(value, style={
                     "color": color,
                     "fontSize": "1.1rem",
                     "fontWeight": "bold",
-                    "marginBottom": "4px"
+                    "marginBottom": "4px",
+                    "position": "relative",
+                    "zIndex": "1",
+                    "transition": "all 0.3s ease"
                 }),
                 html.Div(subtitle, style={
                     "color": self.colors["text_secondary"],
                     "fontSize": "0.8rem",
-                    "lineHeight": "1.2"
+                    "lineHeight": "1.2",
+                    "position": "relative",
+                    "zIndex": "1",
+                    "transition": "all 0.3s ease"
                 }) if subtitle else html.Div()
             ])
-        ], style={
+        ], 
+        className="side-metric-card",
+        style={
             "backgroundColor": self.colors["background"],
             "padding": "12px 15px",
             "borderRadius": "8px",
             "border": f"1px solid {self.colors['grid']}",
-            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+            "transition": "all 0.3s ease",
+            "position": "relative",
+            "overflow": "hidden",
+            "cursor": "pointer"
         })
-
     @abstractmethod
     def get_chart_generators(self) -> Dict[str, Callable]:
         """

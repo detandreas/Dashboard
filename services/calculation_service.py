@@ -169,6 +169,56 @@ class StandardCalculationService(PortfolioCalculator):
             logger.error(f"Error finding extrema: {e}")
             raise
     
+    def calculate_profit_analysis_metrics(self, profit_series: np.ndarray, dates: pd.DatetimeIndex, 
+                                        timeframe: str = "All") -> dict:
+        """Calculate profit analysis metrics including max/min profit with timeframe filtering."""
+        try:
+            from datetime import timedelta
+            
+            # Apply timeframe filter if needed
+            if timeframe != "All" and len(dates) > 0:
+                end_date = dates[-1]
+                
+                if timeframe == "1M":
+                    start_date = end_date - timedelta(days=30)
+                elif timeframe == "3M":
+                    start_date = end_date - timedelta(days=90)
+                elif timeframe == "6M":
+                    start_date = end_date - timedelta(days=180)
+                elif timeframe == "1Y":
+                    start_date = end_date - timedelta(days=365)
+                else:
+                    start_date = dates[0]
+                
+                # Filter data
+                mask = dates >= start_date
+                filtered_dates = dates[mask]
+                filtered_profit = profit_series[mask]
+            else:
+                filtered_dates = dates
+                filtered_profit = profit_series
+            
+            if len(filtered_profit) > 0:
+                # Find extrema for the filtered data
+                (max_profit, max_date), (min_profit, min_date) = self.find_extrema(
+                    filtered_profit, filtered_dates
+                )
+            else:
+                max_profit = min_profit = 0
+                max_date = min_date = None
+            
+            return {
+                'max_profit': max_profit,
+                'min_profit': min_profit,
+                'max_date': max_date,
+                'min_date': min_date,
+                'current_profit': profit_series[-1] if len(profit_series) > 0 else 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating profit analysis metrics: {e}")
+            raise
+    
     def calculate_portfolio_metrics(self, ticker_data_list: List) -> PerformanceMetrics:
         """Calculate overall portfolio performance metrics."""
         try:

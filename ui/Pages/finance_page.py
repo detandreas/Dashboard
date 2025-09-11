@@ -86,7 +86,7 @@ class FinancePage(BasePage):
             }),
             
             # Metrics cards
-            self.ui_factory.create_finance_metrics_cards(metrics),
+            self.ui_factory.create_enhanced_finance_metrics_cards(metrics),
             
             # Overview chart
             html.Div([

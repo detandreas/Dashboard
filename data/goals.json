@@ -4,7 +4,7 @@
     "milestones": [
       {
         "label": "Short Term",
-        "amount": 15000.0,
+        "amount": 10000.0,
         "status": "upcoming"
       },
       {
@@ -16,10 +16,15 @@
         "label": "Long Term",
         "amount": 50000.0,
         "status": "upcoming"
+      },
+      {
+        "label": "Major Goal",
+        "amount": 100000.0,
+        "status": "upcoming"
       }
     ],
     "active": true,
-    "created_date": "2025-09-10T20:03:03.558567",
-    "last_updated": "2025-09-10T20:03:03.558579"
+    "created_date": "2025-09-11T03:18:20.172375",
+    "last_updated": "2025-09-11T03:18:20.172383"
   }
 }

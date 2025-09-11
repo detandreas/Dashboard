@@ -11,53 +11,6 @@ logger = logging.getLogger(__name__)
 class PortfolioComponentsMixin:
     """Components specific to portfolio pages."""
 
-    def create_portfolio_summary(self, portfolio: PortfolioSnapshot) -> html.Div:
-        """Create dashboard summary section for the portfolio page."""
-        return html.Div(
-            [
-                html.H2(
-                    "Portfolio Dashboard",
-                    style={
-                        "textAlign": "center",
-                        "color": self.colors["accent"],
-                        "marginTop": "10px",
-                        "marginBottom": "20px",
-                    },
-                ),
-                html.Div(
-                    [
-                        self.create_metric_card(
-                            "Last Updated", datetime.now().strftime("%d %b %Y, %H:%M")
-                        ),
-                        self.create_metric_card(
-                            "Invested",
-                            f"${portfolio.total_metrics.invested:.2f}",
-                            self.colors["text_primary"],
-                        ),
-                        self.create_metric_card(
-                            "Total Portfolio Value",
-                            f"${portfolio.total_metrics.current_value:.2f}",
-                            self.colors["accent"],
-                        ),
-                        self.create_metric_card(
-                            "Total P&L",
-                            f"${portfolio.total_metrics.profit_absolute:.2f}",
-                            self.colors["green"]
-                            if portfolio.total_metrics.is_profitable
-                            else self.colors["red"],
-                        ),
-                        self.create_metric_card(
-                            "Overall Return",
-                            f"{portfolio.total_metrics.return_percentage:.2f}%",
-                            self.colors["green"]
-                            if portfolio.total_metrics.return_percentage >= 0
-                            else self.colors["red"],
-                        ),
-                    ],
-                    style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap"},
-                ),
-            ]
-        )
 
     def create_portfolio_composition(self, portfolio: PortfolioSnapshot) -> html.Div:
         """Create portfolio composition pie chart with breakdown."""
@@ -95,53 +48,44 @@ class PortfolioComponentsMixin:
                     go.Pie(
                         labels=symbols,
                         values=values,
-                        hole=0.4,
-                        textinfo="label+percent",
-                        textposition="auto",
+                        hole=0.6,
+                        textinfo="none",
                         hovertemplate='<b>%{label}</b><br>'
                         + 'Invested: $%{value:,.2f}<br>'
                         + 'Percentage: %{percent}<br>'
                         + '<extra></extra>',
                         marker=dict(
                             colors=[
-                                "#1f77b4",
-                                "#ff7f0e",
-                                "#2ca02c",
-                                "#d62728",
-                                "#9467bd",
-                                "#8c564b",
+                                "#6366f1",  # Indigo
+                                "#06b6d4",  # Cyan
+                                "#10b981",  # Emerald
+                                "#8b5cf6",  # Violet
+                                "#f59e0b",  # Amber
+                                "#ef4444",  # Red
                             ],
-                            line=dict(color="#000000", width=2),
+                            line=dict(color="#374151", width=2),
                         ),
                     )
                 ]
             )
 
             fig.add_annotation(
-                text=f"<br>${total_portfolio_value:,.2f}",
+                text=f"${total_portfolio_value:,.2f}",
                 x=0.5,
                 y=0.5,
-                font=dict(size=16, color=self.colors["text_primary"]),
+                font=dict(size=14, color=self.colors["text_primary"]),
                 showarrow=False,
                 align="center",
             )
 
             fig.update_layout(
-                height=400,
+                height=200,
                 template="plotly_dark",
-                title={
-                    "text": "Portfolio Composition",
-                    "font": {"size": 18, "color": self.colors["text_primary"]},
-                    "y": 0.95,
-                    "x": 0.5,
-                    "xanchor": "center",
-                    "yanchor": "top",
-                },
                 plot_bgcolor=self.colors["card_bg"],
                 paper_bgcolor=self.colors["card_bg"],
                 font=dict(color=self.colors["text_primary"]),
                 showlegend=False,
-                margin=dict(l=20, r=20, t=60, b=20),
+                margin=dict(l=5, r=5, t=5, b=5),
             )
 
             breakdown_items = []
@@ -155,7 +99,7 @@ class PortfolioComponentsMixin:
                                         ticker,
                                         style={
                                             "fontWeight": "bold",
-                                            "fontSize": "1.1rem",
+                                            "fontSize": "0.8rem",
                                             "color": self.colors["accent"],
                                         },
                                     ),
@@ -164,25 +108,26 @@ class PortfolioComponentsMixin:
                                         style={
                                             "float": "right",
                                             "fontWeight": "bold",
+                                            "fontSize": "0.8rem",
                                             "color": self.colors["text_primary"],
                                         },
                                     ),
                                 ],
-                                style={"marginBottom": "5px"},
+                                style={"marginBottom": "2px"},
                             ),
                             html.Div(
                                 f"${value:,.2f}",
                                 style={
                                     "color": self.colors["text_secondary"],
-                                    "fontSize": "0.9rem",
+                                    "fontSize": "0.7rem",
                                 },
                             ),
                         ],
                         style={
-                            "padding": "15px",
-                            "marginBottom": "10px",
+                            "padding": "4px 6px",
+                            "marginBottom": "3px",
                             "backgroundColor": self.colors["background"],
-                            "borderRadius": "8px",
+                            "borderRadius": "3px",
                             "border": f"1px solid {self.colors['grid']}",
                         },
                     )
@@ -190,48 +135,57 @@ class PortfolioComponentsMixin:
 
             return html.Div(
                 [
-                    html.H3(
-                        "Portfolio Composition",
-                        style={
-                            "textAlign": "center",
-                            "color": self.colors["accent"],
-                            "marginBottom": "20px",
-                        },
+                    # Τίτλος στο πάνω αριστερό μέρος
+                    html.Div(
+                        html.H3(
+                            "Portfolio Composition",
+                            style={
+                                "color": self.colors["accent"],
+                                "margin": "0 0 10px 0",
+                                "fontSize": "1.3rem",
+                            },
+                        ),
+                        style={"marginBottom": "10px"}
                     ),
                     html.Div(
                         [
+                            # Pie chart αριστερά
                             html.Div(
-                                [dcc.Graph(figure=fig)],
+                                [dcc.Graph(
+                                    figure=fig,
+                                    config={'displayModeBar': False}
+                                )],
                                 style={
-                                    "width": "60%",
+                                    "width": "50%",
                                     "display": "inline-block",
-                                    "verticalAlign": "top",
+                                    "verticalAlign": "top"
                                 },
                             ),
+                            # Breakdown δεξιά
                             html.Div(
                                 [
-                                    html.H4(
-                                        "Investment Breakdown",
-                                        style={
-                                            "color": self.colors["text_primary"],
-                                            "marginBottom": "20px",
-                                            "textAlign": "center",
-                                        },
-                                    ),
-                                    html.Div(breakdown_items),
+                                    html.Div(breakdown_items, style={
+                                        "maxHeight": "240px",
+                                        "overflowY": "auto"
+                                    }),
                                 ],
                                 style={
-                                    "width": "38%",
+                                    "width": "48%",
                                     "display": "inline-block",
                                     "verticalAlign": "top",
-                                    "paddingLeft": "20px",
+                                    "paddingLeft": "2%"
                                 },
                             ),
                         ],
                         style={"width": "100%"},
                     ),
                 ],
-                style={**self.config.ui.card_style, "marginBottom": "30px"},
+                style={
+                    **self.config.ui.card_style, 
+                    "marginBottom": "30px",
+                    "height": "280px",
+                    "overflow": "hidden"
+                },
             )
 
         except Exception as e:
@@ -260,7 +214,8 @@ class PortfolioComponentsMixin:
             html.Div([
                 html.H3("Investment Goals", style={
                     "color": self.colors["accent"],
-                    "marginBottom": "10px",
+                    "margin": "0 0 10px 0",
+                    "fontSize": "1.3rem",
                     "display": "inline-block"
                 }),
                 html.Div([
@@ -269,14 +224,15 @@ class PortfolioComponentsMixin:
                         id="goal-view-toggle",
                         className="goal-button",
                         style={
-                            "backgroundColor": self.colors["secondary"],
+                            "backgroundColor": "#6366f1",
                             "color": "white",
                             "border": "none",
                             "padding": "8px 16px",
-                            "borderRadius": "6px",
+                            "borderRadius": "8px",
                             "marginRight": "10px",
                             "cursor": "pointer",
-                            "fontSize": "0.9rem"
+                            "fontSize": "0.9rem",
+                            "boxShadow": "0 2px 4px rgba(99, 102, 241, 0.2)"
                         }
                     ),
                     html.Button(
@@ -284,22 +240,35 @@ class PortfolioComponentsMixin:
                         id="delete-goal-btn",
                         className="goal-button danger",
                         style={
-                            "backgroundColor": self.colors["red"],
+                            "backgroundColor": "#ef4444",
                             "color": "white",
                             "border": "none",
                             "padding": "8px 16px",
-                            "borderRadius": "6px",
+                            "borderRadius": "8px",
                             "cursor": "pointer",
-                            "fontSize": "0.9rem"
+                            "fontSize": "0.9rem",
+                            "boxShadow": "0 2px 4px rgba(239, 68, 68, 0.2)"
                         }
                     )
                 ], style={"float": "right"})
             ], style={"marginBottom": "20px", "overflow": "hidden"}),
             
             # Goal info και progress
-            html.Div(id="goal-progress-content", children=self._create_goal_progress_content(goal_data))
+            html.Div(
+                id="goal-progress-content",
+                children=self._create_goal_progress_content(goal_data),
+                style={
+                    # Σταθερό ύψος ώστε να μην αλλάζει μέγεθος στο toggle
+                    "height": "220px",
+                    "overflow": "hidden"
+                }
+            )
             
-        ], style={**self.config.ui.card_style, "marginBottom": "30px"})
+        ], style={
+            **self.config.ui.card_style, 
+            "marginBottom": "30px",
+            "height": "280px"
+        })
 
     def _create_no_goal_section(self) -> html.Div:
         """Δημιουργεί section όταν δεν υπάρχει ενεργός στόχος."""
@@ -307,7 +276,8 @@ class PortfolioComponentsMixin:
             html.H3("Investment Goals", style={
                 "color": self.colors["accent"],
                 "marginBottom": "20px",
-                "textAlign": "center"
+                "textAlign": "center",
+                "fontSize": "1.3rem"
             }),
             html.Div([
                 html.P("No active investment goal set.", style={
@@ -321,20 +291,25 @@ class PortfolioComponentsMixin:
                     id="add-goal-btn",
                     className="goal-button primary",
                     style={
-                        "backgroundColor": self.colors["accent"],
+                        "backgroundColor": "#10b981",
                         "color": "white",
                         "border": "none",
                         "padding": "12px 24px",
-                        "borderRadius": "8px",
+                        "borderRadius": "10px",
                         "fontSize": "1rem",
                         "fontWeight": "bold",
                         "cursor": "pointer",
                         "display": "block",
-                        "margin": "0 auto"
+                        "margin": "0 auto",
+                        "boxShadow": "0 4px 6px rgba(16, 185, 129, 0.2)"
                     }
                 )
             ])
-        ], style={**self.config.ui.card_style, "marginBottom": "30px"})
+        ], style={
+            **self.config.ui.card_style, 
+            "marginBottom": "30px",
+            "height": "280px"
+        })
 
     def _create_goal_progress_content(self, goal_data: dict) -> html.Div:
         """Δημιουργεί το περιεχόμενο του goal progress."""
@@ -432,14 +407,12 @@ class PortfolioComponentsMixin:
             is_current = current_value >= milestone["amount"]
             
             # Marker
-            marker_left = position if i != len(milestones) - 1 else (position if position <= 98 else 99)
+            marker_left = position if i != len(milestones) - 1 else 98
             if i != len(milestones) - 1:
                 label_left = marker_left
             else:
-                amount_text = f"${milestone['amount']:,}"
-                label_text = str(milestone.get("label", ""))
-                label_chars = len(label_text) + len(amount_text)
-                label_left = 96 if label_chars > 20 else 98
+                # Για το τελευταίο marker: marker στο 98%, label στο 96%
+                label_left = 95
             markers.append(
                 html.Div([
                     html.Span("✓", style={
@@ -451,9 +424,9 @@ class PortfolioComponentsMixin:
                         "display": "inline-block",
                         "width": "100%"
                     }) if is_completed else html.Div(style={
-                        "width": "8px",
-                        "height": "8px",
-                        "backgroundColor": self.colors["text_secondary"],
+                        "width": "11px",
+                        "height": "11px",
+                        "backgroundColor": self.colors["text_primary"],
                         "borderRadius": "50%",
                         "margin": "auto"
                     })
@@ -466,7 +439,7 @@ class PortfolioComponentsMixin:
                     "backgroundColor": self.colors["green"] if is_completed else "transparent",
                     "borderRadius": "50%",
                     "transform": "translate(-50%, -50%)",
-                    "border": "2px solid white" if is_completed else f"2px solid {self.colors['text_secondary']}",
+                    "border": "2px solid rgba(255,255,255,0.7)" if is_completed else f"2px solid {self.colors['text_secondary']}",
                     "boxShadow": "0 0 6px rgba(0,0,0,0.5)",
                     "display": "flex",
                     "alignItems": "center",
@@ -477,20 +450,23 @@ class PortfolioComponentsMixin:
             )
             
             # Label κάτω από το marker
-            label_top = 44
+            label_top = 35
             markers.append(
                 html.Div([
                     html.Div(milestone["label"], style={
-                        "fontSize": "0.8rem",
-                        "color": self.colors["green"] if is_completed else self.colors["text_secondary"],
+                        "fontSize": "0.79rem",
+                        "color": self.colors["green"] if is_completed else self.colors["text_primary"],
                         "fontWeight": "bold" if is_completed else "normal",
                         "textAlign": "center",
                         "whiteSpace": "nowrap",
+                        "overflow": "hidden",
+                        "textOverflow": "ellipsis",
+                        "maxWidth": "90px",
                         "padding": "2px 6px",
                         "backgroundColor": self.colors["card_bg"]
                     }),
                     html.Div(f"${milestone['amount']:,}", style={
-                        "fontSize": "0.75rem",
+                        "fontSize": "0.74rem",
                         "color": self.colors["accent"],
                         "textAlign": "center",
                         "marginTop": "2px"
@@ -500,7 +476,7 @@ class PortfolioComponentsMixin:
                     "left": f"{label_left}%",
                     "top": f"{label_top}px",
                     "transform": "translateX(-50%)",
-                    "minWidth": "70px"
+                    "minWidth": "60px"
                 })
             )
         
@@ -555,32 +531,44 @@ class PortfolioComponentsMixin:
             
             # Segmented progress bar container
             html.Div([
-                # Background track
-                html.Div(style={
-                    "width": "100%",
-                    "height": "24px",
-                    "backgroundColor": self.colors["grid"],
-                    "borderRadius": "12px",
-                    "position": "relative"
-                }),
-                
-                # Progress segments
-                html.Div(segments, style={
-                    "position": "absolute",
-                    "top": "0",
-                    "left": "0",
-                    "width": "100%",
-                    "height": "24px",
-                    "borderRadius": "12px",
-                    "overflow": "hidden"
-                }),
-                
-                # Markers
-                html.Div(markers)
+                html.Div([
+                    # Background track
+                    html.Div(style={
+                        "width": "100%",
+                        "height": "24px",
+                        "backgroundColor": self.colors["grid"],
+                        "borderRadius": "12px",
+                        "position": "relative"
+                    }),
+                    
+                    # Progress segments - positioned inside the track
+                    html.Div(segments, style={
+                        "position": "absolute",
+                        "top": "0",
+                        "left": "0",
+                        "width": "100%",
+                        "height": "24px",
+                        "borderRadius": "12px",
+                        "overflow": "hidden"
+                    }),
+                    
+                    # Markers - positioned relative to the track
+                    html.Div(markers, style={
+                        "position": "absolute",
+                        "top": "0",
+                        "left": "0",
+                        "width": "100%",
+                        "height": "24px"
+                    })
+                ], style={
+                    "position": "relative",
+                    "height": "24px"
+                })
                 
             ], style={
                 "position": "relative",
-                "marginBottom": "80px"
+                "height": "100px",
+                "marginBottom": "0"
             })
         ])
 
@@ -619,15 +607,16 @@ class PortfolioComponentsMixin:
                 html.H4(f"Next Goal: {next_milestone['label']}", style={
                     "color": self.colors["accent"],
                     "textAlign": "center",
-                    "marginBottom": "10px"
+                    "marginBottom": "5px",
+                    "fontSize": "1.2rem"
                 }),
                 html.P(f"Completed: {progress:.1f}%", style={
                     "color": self.colors["text_primary"],
                     "textAlign": "center",
-                    "fontSize": "1.2rem",
+                    "fontSize": "0.95rem",
                     "fontWeight": "bold"
                 })
-            ], style={"marginBottom": "20px"}),
+            ], style={"marginBottom": "12px"}),
             
             # Progress bar
             html.Div([
@@ -641,7 +630,7 @@ class PortfolioComponentsMixin:
                         "fontWeight": "bold",
                         "float": "right"
                     })
-                ], style={"marginBottom": "10px"}),
+                ], style={"marginBottom": "6px"}),
                 
                 html.Div([
                     html.Div(style={
@@ -656,22 +645,22 @@ class PortfolioComponentsMixin:
                     "height": "20px",
                     "backgroundColor": self.colors["grid"],
                     "borderRadius": "10px",
-                    "marginBottom": "15px"
+                    "marginBottom": "10px"
                 })
             ]),
             
             # Stats
             html.Div([
                 html.Div([
-                    html.Span("Remaining:", style={"color": self.colors["text_secondary"]}),
+                    html.Span("Remaining:", style={"color": self.colors["text_secondary"], "fontSize": "1.05rem"}),
                     html.Span(f"${remaining:,.0f}", style={
                         "color": self.colors["text_primary"],
                         "fontWeight": "bold",
                         "marginLeft": "10px"
                     })
-                ], style={"marginBottom": "10px"}),
+                ], style={"marginBottom": "6px"}),
                 html.Div([
-                    html.Span("Completed Milestones:", style={"color": self.colors["text_secondary"]}),
+                    html.Span("Completed Milestones:", style={"color": self.colors["text_secondary"], "fontSize": "1.05rem"}),
                     html.Span(f"{completed_count}/{total_count}", style={
                         "color": self.colors["green"],
                         "fontWeight": "bold",

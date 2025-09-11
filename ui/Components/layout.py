@@ -4,6 +4,30 @@ from typing import List
 
 class LayoutComponentsMixin:
     """Layout-related components such as sidebar and footer."""
+    
+    def _create_svg_icon(self, icon_name: str) -> html.Div:
+        """Create professional Unicode icon based on icon name."""
+        # Using professional Unicode symbols instead of SVG
+        unicode_icons = {
+            "chart_line": "⟰",      # Trending up arrow
+            "chart_bar": "⊞",       # Square with plus (representing bars)
+            "list": "☰",            # Hamburger menu (list)
+            "dollar": "$",          # Dollar sign
+            "settings": "⚙"         # Gear symbol
+        }
+        
+        return html.Div(
+            unicode_icons.get(icon_name, "⟰"),
+            className="nav-icon",
+            style={
+                "marginRight": "12px", 
+                "display": "flex", 
+                "alignItems": "center",
+                "fontSize": "18px",
+                "color": "white",
+                "fontWeight": "bold"
+            }
+        )
 
     def create_sidebar(self, nav_items: List[dict]) -> html.Div:
         """Create the sidebar navigation component."""
@@ -42,17 +66,14 @@ class LayoutComponentsMixin:
                     [
                         html.Button(
                             [
-                                html.Span(
-                                    f"{item['icon']}",
-                                    style={"marginRight": "10px", "fontSize": "1.1rem"},
-                                ),
+                                self._create_svg_icon(item["icon"]),
                                 html.Span(
                                     item["label"],
                                     style={"fontSize": "0.95rem"},
                                 ),
                             ],
                             id=f"nav-{item['id']}",
-                            className="nav-item",
+                            className="nav-item nav-metric-card",
                             n_clicks=0,
                         )
                         for item in nav_items
@@ -115,9 +136,9 @@ class LayoutComponentsMixin:
                                         "minWidth": "0",
                                     },
                                 ),
-                                html.Span(
-                                    "⚙️",
-                                    style={"fontSize": "1rem", "marginLeft": "5px", "flexShrink": "0"},
+                                html.Div(
+                                    self._create_svg_icon("settings"),
+                                    style={"marginLeft": "5px", "flexShrink": "0", "marginRight": "0"},
                                 ),
                             ],
                             id="nav-settings",

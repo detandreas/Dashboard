@@ -156,7 +156,18 @@ body {
     animation: arrowPulse 2s ease-in-out infinite;
 }
 
-/* Professional Profit/Loss Icon */
+/* Professional Average Icon */
+.icon-average::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #f59e0b, #d97706);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+}
+
+/* Professional P&L Icon */
 .profit-loss-positive::before {
     content: '';
     display: block;
@@ -205,6 +216,7 @@ body {
 /* Professional icons hover animations */
 .side-metric-card:hover .icon-cash::before,
 .side-metric-card:hover .icon-portfolio::before,
+.side-metric-card:hover .icon-average::before,
 .side-metric-card:hover .profit-loss-positive::before,
 .side-metric-card:hover .profit-loss-negative::before,
 .side-metric-card:hover .percentage-positive::before,

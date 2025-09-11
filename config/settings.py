@@ -73,8 +73,8 @@ class Config:
                 "EQAC.EU": 20,
                 "USD/EUR": 0.02,
             },
-            portfolio_profit_tick=100,
-            portfolio_yield_tick=2
+            portfolio_profit_tick=200,
+            portfolio_yield_tick=3
         )
         
         self.ui = UIConfig(

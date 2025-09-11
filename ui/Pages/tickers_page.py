@@ -273,6 +273,11 @@ class TickersPage(BasePage):
             if timeframe != "All":
                 dates, profit_series = self._filter_data_by_timeframe(dates, profit_series, timeframe)
             
+            # Find extrema for the filtered data
+            (max_val, max_date), (min_val, min_date) = self.ui_factory.calculator.find_extrema(
+                profit_series, dates
+            )
+            
             fig = go.Figure()
             
             fig.add_trace(
@@ -284,6 +289,34 @@ class TickersPage(BasePage):
                     fillcolor='rgba(99, 102, 241, 0.2)',
                     line=dict(width=3, color=self.colors["accent"]),
                     hovertemplate='<b>Profit</b><br>'
+                    + 'Date: %{x|%d %b %Y}<br>'
+                    + 'Profit: $%{y:,.2f}<extra></extra>',
+                )
+            )
+            
+            # Add max profit marker
+            fig.add_trace(
+                go.Scatter(
+                    x=[max_date],
+                    y=[max_val],
+                    mode="markers",
+                    name="Maximum Profit",
+                    marker=dict(size=14, color=self.colors["green"]),
+                    hovertemplate='<b>Maximum Profit</b><br>'
+                    + 'Date: %{x|%d %b %Y}<br>'
+                    + 'Profit: $%{y:,.2f}<extra></extra>',
+                )
+            )
+            
+            # Add min profit marker
+            fig.add_trace(
+                go.Scatter(
+                    x=[min_date],
+                    y=[min_val],
+                    mode="markers",
+                    name="Minimum Profit",
+                    marker=dict(size=14, color=self.colors["red"]),
+                    hovertemplate='<b>Minimum Profit</b><br>'
                     + 'Date: %{x|%d %b %Y}<br>'
                     + 'Profit: $%{y:,.2f}<extra></extra>',
                 )
@@ -478,7 +511,7 @@ class TickersPage(BasePage):
             "justifyContent": "space-evenly"
         })
     
-    def _get_profit_metrics(self, ticker_data: TickerData) -> html.Div:
+    def _get_profit_metrics(self, ticker_data: TickerData, timeframe: str = "All") -> html.Div:
         """Get profit metrics for the side panel."""
         if not ticker_data.has_trades:
             return html.Div([
@@ -496,6 +529,19 @@ class TickersPage(BasePage):
         metrics = ticker_data.metrics
         profit_color = self.colors["green"] if metrics.profit_absolute >= 0 else self.colors["red"]
         
+        # Calculate profit analysis metrics using calculation service
+        dates = ticker_data.price_history.index
+        profit_series = ticker_data.profit_series
+        
+        profit_analysis = self.ui_factory.calculator.calculate_profit_analysis_metrics(
+            profit_series, dates, timeframe
+        )
+        
+        max_profit = profit_analysis['max_profit']
+        min_profit = profit_analysis['min_profit']
+        max_date = profit_analysis['max_date']
+        min_date = profit_analysis['min_date']
+        
         return html.Div([
             html.H4("Profit Analysis", style={
                 "color": self.colors["accent"],
@@ -505,7 +551,7 @@ class TickersPage(BasePage):
             }),
             html.Div([
                 self.ui_factory.create_side_metric_card(
-                    "Total Profit",
+                    "Current Profit",
                     f"${metrics.profit_absolute:.2f}",
                     profit_color,
                     f"Return: {metrics.return_percentage:.2f}%"
@@ -513,16 +559,18 @@ class TickersPage(BasePage):
             ], style={"marginBottom": "15px"}),
             html.Div([
                 self.ui_factory.create_side_metric_card(
-                    "Invested",
-                    f"${metrics.invested:.2f}",
-                    self.colors["text_primary"]
+                    "Maximum Profit",
+                    f"${max_profit:.2f}",
+                    self.colors["green"],
+                    f"Date: {max_date.strftime('%d %b %Y') if max_date else 'N/A'}"
                 )
             ], style={"marginBottom": "15px"}),
             html.Div([
                 self.ui_factory.create_side_metric_card(
-                    "Current Value",
-                    f"${metrics.current_value:.2f}",
-                    self.colors["accent"]
+                    "Minimum Profit",
+                    f"${min_profit:.2f}",
+                    self.colors["red"],
+                    f"Date: {min_date.strftime('%d %b %Y') if min_date else 'N/A'}"
                 )
             ])
         ], style={

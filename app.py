@@ -101,9 +101,6 @@ class DashboardApplication:
             # Goal Setup Modal
             self.ui_factory.create_goal_setup_modal(),
             
-            # Hidden store for active page
-            dcc.Store(id="active-page", data="tickers"),
-            
             # Hidden store for goal view mode
             dcc.Store(id="goal-view-mode", data=True)
         ], className="app-container")

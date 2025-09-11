@@ -81,10 +81,10 @@ class DashboardApplication:
     def _create_main_layout(self) -> html.Div:
         """Create the main application layout with sidebar."""
         nav_items = [
-            {"id": "tickers", "icon": "📈", "label": "Individual Tickers"},
-            {"id": "portfolio", "icon": "📊", "label": "Portfolio Overview"},
-            {"id": "trades", "icon": "📋", "label": "Trading History"},
-            {"id": "finances", "icon": "💰", "label": "Personal Finances"},
+            {"id": "tickers", "icon": "chart_line", "label": "Individual Tickers"},
+            {"id": "portfolio", "icon": "chart_bar", "label": "Portfolio Overview"},
+            {"id": "trades", "icon": "list", "label": "Trading History"},
+            {"id": "finances", "icon": "dollar", "label": "Personal Finances"},
         ]
 
         return html.Div([
@@ -398,6 +398,128 @@ class DashboardApplication:
                 self.logger.error(f"Error toggling goal view: {e}")
                 raise PreventUpdate
         
+        # Timeframe button callbacks
+        @self.app.callback(
+            [Output("active-timeframe", "data"),
+             Output("timeframe-1M", "className"),
+             Output("timeframe-3M", "className"),
+             Output("timeframe-6M", "className"),
+             Output("timeframe-1Y", "className"),
+             Output("timeframe-All", "className")],
+            [Input("timeframe-1M", "n_clicks"),
+             Input("timeframe-3M", "n_clicks"),
+             Input("timeframe-6M", "n_clicks"),
+             Input("timeframe-1Y", "n_clicks"),
+             Input("timeframe-All", "n_clicks")],
+            prevent_initial_call=True
+        )
+        def update_timeframe(btn_1m, btn_3m, btn_6m, btn_1y, btn_all):
+            """Update active timeframe based on button clicks."""
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                raise PreventUpdate
+            
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            timeframe_map = {
+                "timeframe-1M": "1M",
+                "timeframe-3M": "3M", 
+                "timeframe-6M": "6M",
+                "timeframe-1Y": "1Y",
+                "timeframe-All": "All"
+            }
+            
+            active_timeframe = timeframe_map.get(button_id, "All")
+            
+            # Set active classes
+            classes = ["timeframe-btn"] * 5
+            active_index = list(timeframe_map.values()).index(active_timeframe)
+            classes[active_index] = "timeframe-btn active"
+            
+            return active_timeframe, *classes
+
+        # Enhanced chart switching callback for portfolio page
+        @self.app.callback(
+            [Output("dynamic-chart-container", "children"),
+             Output("dynamic-metrics-container", "children")],
+            [Input("chart-selector", "value"),
+             Input("active-timeframe", "data")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_chart_and_metrics(chart_type, timeframe, active_page):
+            """Update chart and metrics based on selections."""
+            if active_page != "portfolio":
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                portfolio_page = self.page_factory.create_page("portfolio")
+                
+                if chart_type == "profit":
+                    # Use enhanced profit chart with timeframe (always area)
+                    enhanced_fig = portfolio_page._create_enhanced_profit_chart(
+                        portfolio.tickers, 
+                        "Portfolio Profit History",
+                        timeframe
+                    )
+                    chart = self.ui_factory.create_chart_container(enhanced_fig)
+                    _, metrics = portfolio_page._get_profit_chart_and_metrics(portfolio)
+                    
+                elif chart_type == "yield":
+                    # Use enhanced yield chart with timeframe (always area)
+                    enhanced_fig = portfolio_page._create_enhanced_yield_chart(
+                        portfolio,
+                        timeframe
+                    )
+                    chart = self.ui_factory.create_chart_container(enhanced_fig)
+                    _, metrics = portfolio_page._get_yield_chart_and_metrics(portfolio)
+                    
+                else:
+                    raise PreventUpdate
+                
+                return chart, metrics
+                
+            except Exception as e:
+                self.logger.error(f"Error updating chart: {e}")
+                error_content = html.Div([
+                    html.P("Error loading chart data", style={
+                        "textAlign": "center",
+                        "color": self.config.ui.colors["red"]
+                    })
+                ])
+                return error_content, html.Div()
+        
+        # Initialize chart content on page load
+        @self.app.callback(
+            [Output("dynamic-chart-container", "children", allow_duplicate=True),
+             Output("dynamic-metrics-container", "children", allow_duplicate=True)],
+            [Input("active-page", "data")],
+            prevent_initial_call='initial_duplicate'
+        )
+        def initialize_chart_content(active_page):
+            """Initialize chart content when portfolio page loads."""
+            if active_page != "portfolio":
+                return html.Div(), html.Div()
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                portfolio_page = self.page_factory.create_page("portfolio")
+                
+                # Initialize with enhanced profit chart (default settings - always area)
+                enhanced_fig = portfolio_page._create_enhanced_profit_chart(
+                    portfolio.tickers, 
+                    "Portfolio Profit History",
+                    "All"  # Default timeframe
+                )
+                chart = self.ui_factory.create_chart_container(enhanced_fig)
+                _, metrics = portfolio_page._get_profit_chart_and_metrics(portfolio)
+                
+                return chart, metrics
+                
+            except Exception as e:
+                self.logger.error(f"Error initializing chart: {e}")
+                return html.Div(), html.Div()
+        
     def _create_milestone_inputs(self, count: int, suggestions: list = None) -> list:
         """Δημιουργεί input fields για milestones."""
         if not suggestions:
@@ -450,7 +572,7 @@ class DashboardApplication:
         
         return inputs
 
-    def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8050):
+    def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8051):
         """Run the dashboard application."""
         self.logger.info(f"Starting dashboard server on {host}:{port}")
         self.app.run(

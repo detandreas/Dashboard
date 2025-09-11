@@ -366,60 +366,6 @@ class CardComponentsMixin:
             },
         )
 
-    def create_side_metric_card(self, title: str, value: str, value_color: str, subtitle: str = None) -> html.Div:
-        """Create a compact metric card for the side panel with centered text."""
-        content = [
-            html.H6(
-                title,
-                style={
-                    "color": self.colors["text_secondary"],
-                    "marginBottom": "8px",
-                    "fontSize": "0.8rem",
-                    "textAlign": "center",
-                    "fontWeight": "500",
-                },
-            ),
-            html.H5(
-                value,
-                style={
-                    "margin": "0",
-                    "color": value_color,
-                    "fontWeight": "bold",
-                    "fontSize": "1.1rem",
-                    "textAlign": "center",
-                },
-            ),
-        ]
-
-        if subtitle:
-            content.append(
-                html.P(
-                    subtitle,
-                    style={
-                        "margin": "5px 0 0 0",
-                        "color": self.colors["text_secondary"],
-                        "fontSize": "0.7rem",
-                        "textAlign": "center",
-                    },
-                )
-            )
-
-        return html.Div(
-            content,
-            className="side-metric-card",
-            style={
-                **self.config.ui.card_style,
-                "padding": "15px 10px",
-                "textAlign": "center",
-                "flex": "1",
-                "display": "flex",
-                "flexDirection": "column",
-                "justifyContent": "center",
-                "margin": "5px 0",
-                "cursor": "pointer",
-                "transition": "all 0.3s ease",
-            }
-        )
 
     def create_finance_error_display(
         self, error_message: str, file_path: str

@@ -37,7 +37,7 @@ class PortfolioComponentsMixin:
                 )
 
             symbols = [ticker.symbol for ticker in invested_tickers]
-            values = [ticker.metrics.invested for ticker in invested_tickers]
+            values = [ticker.metrics.current_value for ticker in invested_tickers]
             percentages = [value / sum(values) * 100 for value in values]
             total_portfolio_value = sum(
                 ticker.metrics.current_value for ticker in invested_tickers
@@ -51,7 +51,7 @@ class PortfolioComponentsMixin:
                         hole=0.6,
                         textinfo="none",
                         hovertemplate='<b>%{label}</b><br>'
-                        + 'Invested: $%{value:,.2f}<br>'
+                        + 'Current Value: $%{value:,.2f}<br>'
                         + 'Percentage: %{percent}<br>'
                         + '<extra></extra>',
                         marker=dict(

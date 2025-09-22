@@ -6,7 +6,7 @@ from config.settings import Config
 from .cards import CardComponentsMixin
 from .charts import ChartComponentsMixin
 from .layout import LayoutComponentsMixin
-from .portfolio import PortfolioComponentsMixin
+from .portfolio_com import PortfolioComponentsMixin
 
 
 class UIComponentFactory(

@@ -113,6 +113,513 @@ body {
     color: #CCCCCC;
 }
 
+/* Professional metric icons */
+.icon-cash::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #10b981, #059669);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+}
+
+.icon-portfolio::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #2979FF, #1976D2);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+}
+
+.icon-arrow-up::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #10b981, #059669);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11l5-5m0 0l5 5m-5-5v12' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    animation: arrowPulse 2s ease-in-out infinite;
+}
+
+.icon-arrow-down::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #ef4444, #dc2626);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 13l-5 5m0 0l-5-5m5 5V6' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    animation: arrowPulse 2s ease-in-out infinite;
+}
+
+/* Professional Average Icon */
+.icon-average::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #f59e0b, #d97706);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+}
+
+/* Professional P&L Icon */
+.profit-loss-positive::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    transition: all 0.3s ease;
+}
+
+.profit-loss-negative::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    transition: all 0.3s ease;
+}
+
+/* Professional Percentage Icon */
+.percentage-positive::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 11l5-5m0 0l5 5m-5-5v12M5 21h14' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    transition: all 0.3s ease;
+}
+
+.percentage-negative::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 13l-5 5m0 0l-5-5m5 5V6M5 21h14' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    transition: all 0.3s ease;
+}
+
+/* Professional icons hover animations */
+.side-metric-card:hover .icon-cash::before,
+.side-metric-card:hover .icon-portfolio::before,
+.side-metric-card:hover .icon-average::before,
+.side-metric-card:hover .profit-loss-positive::before,
+.side-metric-card:hover .profit-loss-negative::before,
+.side-metric-card:hover .percentage-positive::before,
+.side-metric-card:hover .percentage-negative::before {
+    transform: scale(1.2) rotate(5deg);
+    filter: drop-shadow(0 2px 8px rgba(41, 121, 255, 0.4));
+}
+
+/* Custom Dropdown Dark Theme - Modern Dash */
+.custom-dropdown .dash-dropdown {
+    background-color: #1E1E1E !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.custom-dropdown .dash-dropdown:hover {
+    border-color: #2979FF !important;
+    box-shadow: 0 4px 12px rgba(41, 121, 255, 0.2) !important;
+}
+
+.custom-dropdown .dash-dropdown .dropdown-content {
+    color: white !important;
+    background-color: transparent !important;
+}
+
+.custom-dropdown .dash-dropdown .dropdown-arrow {
+    color: #CCCCCC !important;
+}
+
+/* Dropdown menu */
+.custom-dropdown .dash-dropdown-menu {
+    background-color: #1E1E1E !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5) !important;
+    margin-top: 2px !important;
+}
+
+.custom-dropdown .dash-dropdown-menu .dropdown-item {
+    background-color: transparent !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.custom-dropdown .dash-dropdown-menu .dropdown-item:hover {
+    background-color: #2979FF !important;
+    color: white !important;
+}
+
+.custom-dropdown .dash-dropdown-menu .dropdown-item--selected {
+    background-color: #2979FF !important;
+    color: white !important;
+}
+
+/* Legacy Select styling for older Dash versions */
+.custom-dropdown .Select-control {
+    background-color: #1E1E1E !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.custom-dropdown .Select-control:hover {
+    border-color: #2979FF !important;
+    box-shadow: 0 4px 12px rgba(41, 121, 255, 0.2) !important;
+}
+
+.custom-dropdown .Select-control.is-focused {
+    border-color: #2979FF !important;
+    box-shadow: 0 0 0 2px rgba(41, 121, 255, 0.2) !important;
+}
+
+.custom-dropdown .Select-placeholder,
+.custom-dropdown .Select-value-label {
+    color: white !important;
+    font-weight: 500 !important;
+}
+
+.custom-dropdown .Select-arrow-zone {
+    padding-right: 10px !important;
+}
+
+.custom-dropdown .Select-arrow {
+    border-color: #CCCCCC transparent transparent !important;
+    border-width: 5px 5px 2.5px !important;
+}
+
+.custom-dropdown .Select-menu-outer {
+    background-color: #1E1E1E !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5) !important;
+    margin-top: 2px !important;
+}
+
+.custom-dropdown .Select-menu {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}
+
+.custom-dropdown .Select-option {
+    background-color: transparent !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.custom-dropdown .Select-option:hover {
+    background-color: #2979FF !important;
+    color: white !important;
+}
+
+.custom-dropdown .Select-option.is-selected {
+    background-color: #2979FF !important;
+    color: white !important;
+}
+
+.custom-dropdown .Select-option.is-focused {
+    background-color: rgba(41, 121, 255, 0.1) !important;
+    color: white !important;
+}
+
+/* Additional modern Dash dropdown selectors */
+#chart-selector {
+    background-color: #1E1E1E !important;
+    color: white !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+}
+
+#chart-selector .dropdown-content {
+    color: white !important;
+}
+
+#chart-selector option {
+    background-color: #1E1E1E !important;
+    color: white !important;
+}
+
+/* Force white text on all dropdown elements */
+.custom-dropdown,
+.custom-dropdown *,
+#chart-selector,
+#chart-selector *,
+#timeframe-selector,
+#timeframe-selector * {
+    color: white !important;
+}
+
+/* Chart controls styling */
+.chart-selector, .timeframe-selector {
+    font-size: 0.9rem !important;
+}
+
+.chart-view-radio {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.chart-view-radio input[type="radio"] {
+    margin-right: 5px;
+    accent-color: #6366f1;
+}
+
+.chart-view-radio label {
+    color: white !important;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.chart-view-radio label:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+.chart-view-radio input[type="radio"]:checked + span {
+    color: #6366f1 !important;
+    font-weight: bold;
+}
+
+/* Vertical radio buttons for chart controls */
+.chart-view-radio-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chart-view-radio-vertical input[type="radio"] {
+    margin-right: 8px;
+    accent-color: #6366f1;
+}
+
+.chart-view-radio-vertical label {
+    color: white !important;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.chart-view-radio-vertical label:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.chart-view-radio-vertical input[type="radio"]:checked + span {
+    color: #6366f1 !important;
+    font-weight: bold;
+}
+
+/* Timeframe buttons styling */
+.timeframe-btn {
+    background-color: rgba(30, 30, 30, 0.8);
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    min-width: 40px;
+    text-align: center;
+}
+
+.timeframe-btn:hover {
+    background-color: rgba(99, 102, 241, 0.2);
+    border-color: #6366f1;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.timeframe-btn.active {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.timeframe-btn.active:hover {
+    background-color: #5856eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+}
+
+/* Side Metric Cards Hover Animations */
+.side-metric-card {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.side-metric-card:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 12px 30px rgba(41, 121, 255, 0.2);
+    background: linear-gradient(135deg, rgba(41, 121, 255, 0.08) 0%, rgba(41, 121, 255, 0.03) 100%);
+    border: 1px solid rgba(41, 121, 255, 0.3);
+}
+
+/* Ripple effect on hover */
+.side-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(41, 121, 255, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.side-metric-card:hover::before {
+    width: 200px;
+    height: 200px;
+}
+
+/* Text animations for both top and side metrics */
+.side-metric-card h5,
+.side-metric-card h6,
+.side-metric-card h4,
+.side-metric-card p {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.side-metric-card:hover h5,
+.side-metric-card:hover h4 {
+    transform: scale(1.05);
+    text-shadow: 0 0 10px rgba(41, 121, 255, 0.4);
+}
+
+.side-metric-card:hover h6 {
+    transform: translateY(-2px);
+    color: #2979FF !important;
+}
+
+.side-metric-card:hover p {
+    transform: translateY(2px);
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Pulse animation for values */
+@keyframes valuePulse {
+    0%, 100% { 
+        transform: scale(1.05); 
+    }
+    50% { 
+        transform: scale(1.08); 
+    }
+}
+
+.side-metric-card:hover h5,
+.side-metric-card:hover h4 {
+    animation: valuePulse 1.5s ease-in-out infinite;
+}
+
+/* Apply metric card animations to nav items - Override nav-item styles */
+.nav-item.nav-metric-card {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.nav-item.nav-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(41, 121, 255, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.nav-item.nav-metric-card:hover::before {
+    width: 200px;
+    height: 200px;
+}
+
+/* Override nav-item hover styles with metric card animations */
+.nav-item.nav-metric-card:hover {
+    transform: translateY(-4px) scale(1.03) !important;
+    box-shadow: 0 12px 30px rgba(41, 121, 255, 0.2) !important;
+    background: linear-gradient(135deg, rgba(41, 121, 255, 0.08) 0%, rgba(41, 121, 255, 0.03) 100%) !important;
+    border: 1px solid rgba(41, 121, 255, 0.3) !important;
+    border-left: 3px solid rgba(41, 121, 255, 0.8) !important;
+    color: #2979FF !important;
+}
+
+/* Nav icon and text animations with higher specificity */
+.nav-item.nav-metric-card .nav-icon,
+.nav-item.nav-metric-card span {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.nav-item.nav-metric-card:hover .nav-icon {
+    transform: scale(1.05) !important;
+    filter: drop-shadow(0 0 10px rgba(41, 121, 255, 0.4));
+    animation: valuePulse 1.5s ease-in-out infinite;
+}
+
+.nav-item.nav-metric-card:hover span {
+    transform: translateY(-2px) !important;
+    color: #2979FF !important;
+    text-shadow: 0 0 10px rgba(41, 121, 255, 0.4);
+}
+
+/* Active state for nav items with metric animations */
+.nav-item.nav-metric-card.active {
+    transform: translateY(-2px) scale(1.01) !important;
+    box-shadow: 0 8px 20px rgba(41, 121, 255, 0.25) !important;
+    background: linear-gradient(135deg, rgba(41, 121, 255, 0.12) 0%, rgba(41, 121, 255, 0.06) 100%) !important;
+    border-left-color: #2979FF !important;
+}
+
 @media (max-width: 768px) {
     .sidebar {
         width: 200px;

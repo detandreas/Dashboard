@@ -4,7 +4,7 @@ import logging
 
 from ui.Pages.base_page import BasePage
 from services.portfolio_service import PortfolioService
-from ui.Components.components import UIComponentFactory
+from ui.Components import UIComponentFactory
 
 logger = logging.getLogger(__name__)
 
@@ -114,20 +114,10 @@ class TradesPage(BasePage):
             unique_tickers = df['Ticker'].nunique()
             total_invested = portfolio.total_metrics.invested  # Use calculated value
             
-            summary_cards = html.Div([
-                self.ui_factory.create_metric_card("Total Trades", str(total_trades)),
-                self.ui_factory.create_metric_card("Unique Tickers", str(unique_tickers)),
-                self.ui_factory.create_metric_card("Total Invested", f"${total_invested:.2f}"),
-                self.ui_factory.create_metric_card(
-                    "Date Range", 
-                    f"{df['Date'].min().strftime('%b %Y')} - {df['Date'].max().strftime('%b %Y')}"
-                )
-            ], style={
-                "display": "flex",
-                "justifyContent": "center",
-                "flexWrap": "wrap",
-                "marginBottom": "30px"
-            })
+            date_range = f"{df['Date'].min().strftime('%b %Y')} - {df['Date'].max().strftime('%b %Y')}"
+            summary_cards = self.ui_factory.create_trades_summary_cards(
+                total_trades, unique_tickers, total_invested, date_range
+            )
             
             return html.Div([
                 html.H2("Trading History", style={

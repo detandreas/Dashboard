@@ -1,13 +1,14 @@
 import logging
 import dash
-from dash import html
-from dash.dependencies import Input, Output
+from dash import html, dcc
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
-
+from dash.exceptions import PreventUpdate
 from config.settings import Config
 from services.data_service import YahooFinanceDataService
 from services.portfolio_service import PortfolioService
-from ui.Components.components import UIComponentFactory
+from services.goal_service import GoalService
+from ui.Components import UIComponentFactory
 from ui.Pages.page_factory import PageFactory
 from utils.logging_config import setup_logging
 
@@ -15,24 +16,21 @@ from utils.logging_config import setup_logging
 Dashboard – four overall views
 =============================
 * **Dropdown** με 4 επιλογές:
-  1. **Tickers (VUAA, EQAC, USD)** → εμφανίζει το ένα κάτω απ' το άλλο:
-     - κάρτες Invested/Current/Profit/Return για κάθε ticker
-     - γράφημα Price + DCA + Buys
-  2. **Portfolio** → εμφανίζει συνοπτικές κάρτες χαρτοφυλακίου και δύο διαγράμματα:
-     - Profit curve (ETF + USD)
-     - Yield % curve (Profit / Invested ETFs)
-  3. **Trades History** --> εμφανιζει εναν καταλογο με ολα τα trades 
+1. **Tickers (VUAA, EQAC, USD)** → εμφανίζει το ένα κάτω απ' το άλλο:
+    - κάρτες Invested/Current/Profit/Return για κάθε ticker
+    - γράφημα Price + DCA + Buys
+2. **Portfolio** → εμφανίζει συνοπτικές κάρτες χαρτοφυλακίου και δύο διαγράμματα:
+    - Profit curve (ETF + USD)
+    - Yield % curve (Profit / Invested ETFs)
+3. **Trades History** --> εμφανιζει εναν καταλογο με ολα τα trades 
         που εχουν πραγματοποιηθει
-  4. **Personal Finances** --> Εμφανιζει διαγραμματα που αφορουν¨
-      - Το Εισοδημα σου
-      - Τα εξοδα σου
-      - Τις επενδυσεις σου
-      - Συνολικο διαγραμμα
-
-
+4. **Personal Finances** --> Εμφανιζει διαγραμματα που αφορουν¨
+    - Το Εισοδημα σου
+    - Τα εξοδα σου
+    - Τις επενδυσεις σου
+    - Συνολικο διαγραμμα
 * Στις κάρτες portfolio: Invested = κεφάλαιο μόνο ETF, Profit = P/L ETF + USD.
 """
-
 class DashboardApplication:
     """Main dashboard application orchestrator."""
     
@@ -47,10 +45,11 @@ class DashboardApplication:
         # Initialize services with dependency injection
         self.data_service = YahooFinanceDataService(self.config)
         self.portfolio_service = PortfolioService(self.data_service, self.config)
+        self.goal_service = GoalService(self.config)
         
         # Initialize UI components
         self.ui_factory = UIComponentFactory(self.config)
-        self.page_factory = PageFactory(self.portfolio_service, self.ui_factory, self.config)
+        self.page_factory = PageFactory(self.portfolio_service, self.ui_factory, self.config, self.goal_service)
         
         # Create Dash app
         self.app = self._create_dash_app()
@@ -70,61 +69,57 @@ class DashboardApplication:
             external_stylesheets=[dbc.themes.BOOTSTRAP],
             suppress_callback_exceptions=True
         )
-
         app.layout = self._create_main_layout()
-
         return app
     
     def _create_main_layout(self) -> html.Div:
         """Create the main application layout with sidebar."""
         nav_items = [
-            {"id": "tickers", "icon": "📈", "label": "Individual Tickers"},
-            {"id": "portfolio", "icon": "📊", "label": "Portfolio Overview"},
-            {"id": "trades", "icon": "📋", "label": "Trading History"},
-            {"id": "finances", "icon": "💰", "label": "Personal Finances"},
+            {"id": "tickers", "icon": "chart_line", "label": "Individual Tickers"},
+            {"id": "portfolio", "icon": "chart_bar", "label": "Portfolio Overview"},
+            {"id": "trades", "icon": "list", "label": "Trading History"},
+            {"id": "finances", "icon": "dollar", "label": "Personal Finances"},
         ]
-
         return html.Div([
             # Sidebar Navigation
             self.ui_factory.create_sidebar(nav_items),
-
             # Main Content Area
             html.Div([
                 # Page Header
                 html.Div(id="page-header"),
-
                 # Content Body
                 html.Div([
                     # Dynamic Summary Cards
                     html.Div(id="dashboard-summary"),
-
                     # Main Content
                     html.Div(id="main-content", style={"marginTop": "20px"}),
-
                     # Footer
                     self.ui_factory.create_footer(),
                 ], className="content-body"),
-
             ], className="main-content"),
-
+            
+            # Goal Setup Modal
+            self.ui_factory.create_goal_setup_modal(),
+            
+            # Hidden store for goal view mode
+            dcc.Store(id="goal-view-mode", data=True)
         ], className="app-container")
-
     def _register_callbacks(self):
         """Register all Dash callbacks."""
         
         # Navigation callback
         @self.app.callback(
             [Output("active-page", "data"),
-             Output("nav-tickers", "className"),
-             Output("nav-portfolio", "className"),
-             Output("nav-trades", "className"),
-             Output("nav-finances", "className"),
-             Output("nav-settings", "className")],
+            Output("nav-tickers", "className"),
+            Output("nav-portfolio", "className"),
+            Output("nav-trades", "className"),
+            Output("nav-finances", "className"),
+            Output("nav-settings", "className")],
             [Input("nav-tickers", "n_clicks"),
-             Input("nav-portfolio", "n_clicks"),
-             Input("nav-trades", "n_clicks"),
-             Input("nav-finances", "n_clicks"),
-             Input("nav-settings", "n_clicks")]
+            Input("nav-portfolio", "n_clicks"),
+            Input("nav-trades", "n_clicks"),
+            Input("nav-finances", "n_clicks"),
+            Input("nav-settings", "n_clicks")]
         )
         def handle_navigation(tickers_clicks, portfolio_clicks, trades_clicks, finances_clicks, settings_clicks):
             """Handle sidebar navigation clicks."""
@@ -219,44 +214,458 @@ class DashboardApplication:
                 self.logger.error(f"Error creating summary: {e}")
                 return html.Div()
         
-        # Goal view toggle callback
+        # Goal management callbacks
         @self.app.callback(
-            [Output("goal-progress-container", "children"),
-             Output("goal-view-overall", "className"),
-             Output("goal-view-next", "className"),
-             Output("goal-view-mode", "data")],
-            [Input("goal-view-overall", "n_clicks"),
-             Input("goal-view-next", "n_clicks")],
-            [dash.dependencies.State("goal-progress-data", "data"),
-             dash.dependencies.State("goal-view-mode", "data")],
+            Output("goal-setup-modal", "style"),
+            [Input("add-goal-btn", "n_clicks"),
+            Input("close-goal-modal", "n_clicks"),
+            Input("cancel-goal-btn", "n_clicks"),
+            Input("save-goal-btn", "n_clicks")],
+            [State("active-page", "data")],
             prevent_initial_call=True
         )
-        def toggle_goal_view(overall_clicks, next_clicks, progress_data, current_mode):
-            """Handle goal view toggle between overall and next milestone."""
-            if not progress_data:
-                return dash.no_update, dash.no_update, dash.no_update, dash.no_update
-            
+        def handle_modal_visibility(add_clicks, close_clicks, cancel_clicks, save_clicks, active_page):
+            """Διαχειρίζεται την εμφάνιση/κρύψιμο του modal."""
             ctx = dash.callback_context
             if not ctx.triggered:
-                return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+                raise PreventUpdate
+            
+            # Επιτρέπουμε δράση μόνο στη σελίδα portfolio
+            if active_page != "portfolio":
+                raise PreventUpdate
+            
+            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            
+            if trigger_id == "add-goal-btn":
+                # Ανοίγει ΜΟΝΟ όταν υπάρχει πραγματικό κλικ (>0)
+                if not add_clicks:
+                    raise PreventUpdate
+                return {"display": "block"}
+            
+            if trigger_id == "close-goal-modal" and close_clicks:
+                return {"display": "none"}
+            if trigger_id == "cancel-goal-btn" and cancel_clicks:
+                return {"display": "none"}
+            if trigger_id == "save-goal-btn" and save_clicks:
+                return {"display": "none"}
+            
+            raise PreventUpdate
+        
+        @self.app.callback(
+            Output("milestone-inputs", "children"),
+            [Input("milestone-count-slider", "value"),
+            Input("add-goal-btn", "n_clicks")],
+            [State("goal-setup-modal", "style")],
+            prevent_initial_call=True
+        )
+        def update_milestone_inputs(milestone_count, add_clicks, modal_style):
+            """Ενημερώνει τα milestone inputs μόνο όταν το modal είναι ανοικτό ή όταν πατηθεί το add."""
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                raise PreventUpdate
+            
+            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            
+            # Επιτρέπουμε τη δημιουργία inputs όταν πατηθεί το add-goal-btn
+            if trigger_id == "add-goal-btn" and add_clicks:
+                if milestone_count is None:
+                    milestone_count = 3
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                current_value = portfolio.total_metrics.current_value
+                suggestions = self.goal_service.get_goal_suggestions(current_value)
+                return self._create_milestone_inputs(int(milestone_count), suggestions[:int(milestone_count)])
+            
+            # Επιτρέπουμε αλλαγές slider μόνο όταν το modal είναι ορατό
+            is_modal_open = isinstance(modal_style, dict) and modal_style.get("display") == "block"
+            if trigger_id == "milestone-count-slider" and is_modal_open:
+                if milestone_count is None:
+                    milestone_count = 3
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                current_value = portfolio.total_metrics.current_value
+                suggestions = self.goal_service.get_goal_suggestions(current_value)
+                return self._create_milestone_inputs(int(milestone_count), suggestions[:int(milestone_count)])
+            
+            raise PreventUpdate
+        
+        @self.app.callback(
+            Output("main-content", "children", allow_duplicate=True),
+            [Input("save-goal-btn", "n_clicks")],
+            [State({"type": "milestone-label", "index": dash.dependencies.ALL}, "value"),
+            State({"type": "milestone-amount", "index": dash.dependencies.ALL}, "value")],
+            prevent_initial_call=True
+        )
+        def save_goal(save_clicks, labels, amounts):
+            """Αποθηκεύει νέο goal."""
+            if not save_clicks:
+                raise PreventUpdate
+            
+            try:
+                # Δημιουργία milestones από τα inputs
+                milestones = []
+                for i, (label, amount) in enumerate(zip(labels or [], amounts or [])):
+                    if label and amount and amount > 0:
+                        milestones.append({
+                            "label": label,
+                            "amount": float(amount),
+                            "status": "upcoming"
+                        })
+                
+                if milestones and self.goal_service.save_goal(milestones):
+                    self.logger.info(f"Goal saved with {len(milestones)} milestones")
+                    # Επιστροφή στο portfolio page με ενημερωμένο goal
+                    return self.page_factory.create_page("portfolio").render()
+                else:
+                    self.logger.error("Failed to save goal")
+                    
+            except Exception as e:
+                self.logger.error(f"Error saving goal: {e}")
+            
+            raise PreventUpdate
+        
+        @self.app.callback(
+            Output("main-content", "children", allow_duplicate=True),
+            [Input("delete-goal-btn", "n_clicks")],
+            prevent_initial_call=True
+        )
+        def delete_goal(delete_clicks):
+            """Διαγράφει το τρέχον goal."""
+            if not delete_clicks:
+                raise PreventUpdate
+            
+            try:
+                if self.goal_service.delete_current_goal():
+                    self.logger.info("Goal deleted successfully")
+                    # Επιστροφή στο portfolio page χωρίς goal
+                    return self.page_factory.create_page("portfolio").render()
+                else:
+                    self.logger.error("Failed to delete goal")
+                    
+            except Exception as e:
+                self.logger.error(f"Error deleting goal: {e}")
+            
+            raise PreventUpdate
+        
+        @self.app.callback(
+            [Output("goal-progress-content", "children"),
+            Output("goal-view-mode", "data"),
+            Output("goal-view-toggle", "children")],
+            [Input("goal-view-toggle", "n_clicks")],
+            [State("goal-view-mode", "data"),
+            State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def toggle_goal_view(toggle_clicks, current_mode, active_page):
+            """Εναλλάσσει τον τρόπο προβολής του goal."""
+            if not toggle_clicks or active_page != "portfolio":
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                current_value = portfolio.total_metrics.current_value
+                goal_data = self.goal_service.update_milestone_status(current_value)
+                
+                # Toggle the view mode
+                new_mode = not current_mode
+                goal_data["show_all_milestones"] = new_mode
+                
+                # Update button text
+                button_text = "Next Milestone" if new_mode else "Overall Progress"
+                
+                return (
+                    self.ui_factory._create_goal_progress_content(goal_data),
+                    new_mode,
+                    button_text
+                )
+                
+            except Exception as e:
+                self.logger.error(f"Error toggling goal view: {e}")
+                raise PreventUpdate
+        
+        # Professional chart system callbacks for portfolio
+        @self.app.callback(
+            [Output("portfolio-active-timeframe", "data"),
+            Output("portfolio-timeframe-1M", "className"),
+            Output("portfolio-timeframe-3M", "className"),
+            Output("portfolio-timeframe-6M", "className"),
+            Output("portfolio-timeframe-1Y", "className"),
+            Output("portfolio-timeframe-All", "className")],
+            [Input("portfolio-timeframe-1M", "n_clicks"),
+            Input("portfolio-timeframe-3M", "n_clicks"),
+            Input("portfolio-timeframe-6M", "n_clicks"),
+            Input("portfolio-timeframe-1Y", "n_clicks"),
+            Input("portfolio-timeframe-All", "n_clicks")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_portfolio_timeframe(btn_1m, btn_3m, btn_6m, btn_1y, btn_all, active_page):
+            """Update active timeframe based on button clicks for portfolio charts."""
+            if active_page != "portfolio":
+                raise PreventUpdate
+                
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                raise PreventUpdate
             
             button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            timeframe_map = {
+                "portfolio-timeframe-1M": "1M",
+                "portfolio-timeframe-3M": "3M", 
+                "portfolio-timeframe-6M": "6M",
+                "portfolio-timeframe-1Y": "1Y",
+                "portfolio-timeframe-All": "All"
+            }
             
-            if button_id == "goal-view-overall":
-                new_mode = "overall"
-                overall_class = "goal-view-btn active"
-                next_class = "goal-view-btn"
-            else:
-                new_mode = "next"
-                overall_class = "goal-view-btn"
-                next_class = "goal-view-btn active"
+            active_timeframe = timeframe_map.get(button_id, "All")
             
-            # Create new visualization
-            new_content = self.ui_factory._create_progress_visualization(progress_data, new_mode)
+            # Set active classes
+            classes = ["timeframe-btn"] * 5
+            active_index = list(timeframe_map.values()).index(active_timeframe)
+            classes[active_index] = "timeframe-btn active"
             
-            return new_content, overall_class, next_class, new_mode
-
-    def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8050):
+            return active_timeframe, *classes
+        # Enhanced chart switching callback for portfolio page
+        @self.app.callback(
+            [Output("portfolio-dynamic-chart-container", "children"),
+            Output("portfolio-dynamic-metrics-container", "children")],
+            [Input("portfolio-chart-selector", "value"),
+            Input("portfolio-active-timeframe", "data")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_portfolio_chart_and_metrics(chart_type, timeframe, active_page):
+            """Update portfolio chart and metrics based on selections."""
+            if active_page != "portfolio":
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                portfolio_page = self.page_factory.create_page("portfolio")
+                
+                if chart_type == "profit":
+                    # Use enhanced profit chart with timeframe
+                    enhanced_fig = portfolio_page._create_enhanced_profit_chart(
+                        portfolio.tickers, 
+                        "Portfolio Profit History",
+                        timeframe
+                    )
+                    chart = self.ui_factory.create_chart_container(enhanced_fig)
+                    metrics = portfolio_page._get_profit_metrics(portfolio)
+                    
+                elif chart_type == "yield":
+                    # Use enhanced yield chart with timeframe
+                    enhanced_fig = portfolio_page._create_enhanced_yield_chart(
+                        portfolio,
+                        timeframe
+                    )
+                    chart = self.ui_factory.create_chart_container(enhanced_fig)
+                    metrics = portfolio_page._get_yield_metrics(portfolio)
+                    
+                else:
+                    raise PreventUpdate
+                
+                return chart, metrics
+                
+            except Exception as e:
+                self.logger.error(f"Error updating portfolio chart: {e}")
+                error_content = html.Div([
+                    html.P("Error loading chart data", style={
+                        "textAlign": "center",
+                        "color": self.config.ui.colors["red"]
+                    })
+                ])
+                return error_content, html.Div()
+        
+        # Tickers page callbacks
+        @self.app.callback(
+            [Output("tickers-active-timeframe", "data"),
+            Output("tickers-timeframe-1M", "className"),
+            Output("tickers-timeframe-3M", "className"),
+            Output("tickers-timeframe-6M", "className"),
+            Output("tickers-timeframe-1Y", "className"),
+            Output("tickers-timeframe-All", "className")],
+            [Input("tickers-timeframe-1M", "n_clicks"),
+            Input("tickers-timeframe-3M", "n_clicks"),
+            Input("tickers-timeframe-6M", "n_clicks"),
+            Input("tickers-timeframe-1Y", "n_clicks"),
+            Input("tickers-timeframe-All", "n_clicks")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_tickers_timeframe(btn_1m, btn_3m, btn_6m, btn_1y, btn_all, active_page):
+            """Update active timeframe for tickers charts."""
+            if active_page != "tickers":
+                raise PreventUpdate
+                
+            ctx = dash.callback_context
+            if not ctx.triggered:
+                raise PreventUpdate
+            
+            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            timeframe_map = {
+                "tickers-timeframe-1M": "1M",
+                "tickers-timeframe-3M": "3M", 
+                "tickers-timeframe-6M": "6M",
+                "tickers-timeframe-1Y": "1Y",
+                "tickers-timeframe-All": "All"
+            }
+            
+            active_timeframe = timeframe_map.get(button_id, "All")
+            
+            # Set active classes
+            classes = ["timeframe-btn"] * 5
+            active_index = list(timeframe_map.values()).index(active_timeframe)
+            classes[active_index] = "timeframe-btn active"
+            
+            return active_timeframe, *classes
+        
+        @self.app.callback(
+            Output("tickers-active-ticker", "data"),
+            [Input("ticker-selector", "value")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_active_ticker(selected_ticker, active_page):
+            """Update active ticker selection."""
+            if active_page != "tickers":
+                raise PreventUpdate
+            return selected_ticker
+        
+        @self.app.callback(
+            Output("ticker-performance-cards", "children"),
+            [Input("ticker-selector", "value")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_ticker_performance_cards(selected_ticker, active_page):
+            """Update performance cards based on selected ticker."""
+            if active_page != "tickers" or not selected_ticker:
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                ticker_data = next((t for t in portfolio.tickers if t.symbol == selected_ticker), None)
+                
+                if ticker_data:
+                    return self.ui_factory.create_enhanced_performance_cards(ticker_data.metrics)
+                else:
+                    return html.Div("Ticker not found")
+                    
+            except Exception as e:
+                self.logger.error(f"Error updating ticker performance cards: {e}")
+                return html.Div("Error loading ticker data")
+        
+        @self.app.callback(
+            [Output("tickers-dynamic-chart-container", "children"),
+            Output("tickers-dynamic-metrics-container", "children")],
+            [Input("tickers-chart-selector", "value"),
+            Input("tickers-active-timeframe", "data"),
+            Input("tickers-active-ticker", "data")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_tickers_chart_and_metrics(chart_type, timeframe, selected_ticker, active_page):
+            """Update tickers chart and metrics based on selections."""
+            if active_page != "tickers" or not selected_ticker:
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                ticker_data = next((t for t in portfolio.tickers if t.symbol == selected_ticker), None)
+                
+                if not ticker_data:
+                    error_content = html.Div([
+                        html.P("Ticker not found", style={
+                            "textAlign": "center",
+                            "color": self.config.ui.colors["red"]
+                        })
+                    ])
+                    return error_content, html.Div()
+                
+                tickers_page = self.page_factory.create_page("tickers")
+                
+                if chart_type == "price":
+                    chart_fig = tickers_page._create_price_chart(ticker_data, timeframe)
+                    chart = self.ui_factory.create_chart_container(chart_fig)
+                    metrics = tickers_page._get_price_metrics(ticker_data)
+                    
+                elif chart_type == "profit":
+                    chart_fig = tickers_page._create_profit_chart(ticker_data, timeframe)
+                    chart = self.ui_factory.create_chart_container(chart_fig)
+                    metrics = tickers_page._get_profit_metrics(ticker_data)
+                    
+                elif chart_type == "volume":
+                    chart_fig = tickers_page._create_volume_chart(ticker_data, timeframe)
+                    chart = self.ui_factory.create_chart_container(chart_fig)
+                    metrics = tickers_page._get_volume_metrics(ticker_data)
+                    
+                else:
+                    raise PreventUpdate
+                
+                return chart, metrics
+                
+            except Exception as e:
+                self.logger.error(f"Error updating tickers chart: {e}")
+                error_content = html.Div([
+                    html.P("Error loading chart data", style={
+                        "textAlign": "center",
+                        "color": self.config.ui.colors["red"]
+                    })
+                ])
+                return error_content, html.Div()
+        
+        
+    def _create_milestone_inputs(self, count: int, suggestions: list = None) -> list:
+        """Δημιουργεί input fields για milestones."""
+        if not suggestions:
+            suggestions = []
+        
+        inputs = []
+        for i in range(count):
+            suggestion = suggestions[i] if i < len(suggestions) else {"amount": 0, "label": f"Milestone {i+1}"}
+            
+            inputs.append(
+                html.Div([
+                    html.Label(f"Milestone {i+1}:", style={
+                        "color": self.config.ui.colors["text_primary"],
+                        "marginBottom": "5px",
+                        "display": "block"
+                    }),
+                    html.Div([
+                        dcc.Input(
+                            id={"type": "milestone-label", "index": i},
+                            type="text",
+                            value=suggestion["label"],
+                            placeholder="Label",
+                            style={
+                                "width": "48%",
+                                "padding": "8px",
+                                "marginRight": "4%",
+                                "backgroundColor": self.config.ui.colors["background"],
+                                "color": self.config.ui.colors["text_primary"],
+                                "border": f"1px solid {self.config.ui.colors['grid']}",
+                                "borderRadius": "4px"
+                            }
+                        ),
+                        dcc.Input(
+                            id={"type": "milestone-amount", "index": i},
+                            type="number",
+                            value=suggestion["amount"],
+                            placeholder="Amount ($)",
+                            style={
+                                "width": "48%",
+                                "padding": "8px",
+                                "backgroundColor": self.config.ui.colors["background"],
+                                "color": self.config.ui.colors["text_primary"],
+                                "border": f"1px solid {self.config.ui.colors['grid']}",
+                                "borderRadius": "4px"
+                            }
+                        )
+                    ])
+                ], style={"marginBottom": "15px"})
+            )
+        
+        return inputs
+    def run(self, debug: bool = True, host: str = "0.0.0.0", port: int = 8051):
         """Run the dashboard application."""
         self.logger.info(f"Starting dashboard server on {host}:{port}")
         self.app.run(
@@ -265,14 +674,11 @@ class DashboardApplication:
             port=port,
             use_reloader=False
         )
-
 # --- expose Dash server for gunicorn ---
 app_instance = DashboardApplication()
 server = app_instance.app.server  # used by: gunicorn app:server
-
 def main():
     """Application entry point."""
     app_instance.run()
-
 if __name__ == "__main__":
     main()

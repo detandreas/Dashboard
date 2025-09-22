@@ -2,7 +2,7 @@ from dash import html
 import logging
 
 from ui.Pages.base_page import BasePage
-from ui.Components.components import UIComponentFactory
+from ui.Components import UIComponentFactory
 from config.settings import Config
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class FinancePage(BasePage):
             }),
             
             # Metrics cards
-            self.ui_factory.create_finance_metrics_cards(metrics),
+            self.ui_factory.create_enhanced_finance_metrics_cards(metrics),
             
             # Overview chart
             html.Div([

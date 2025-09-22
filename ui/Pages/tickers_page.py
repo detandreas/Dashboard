@@ -174,17 +174,23 @@ class TickersPage(BasePage):
             
             # Add DCA line if available
             if ticker_data.has_trades and len(filtered_dca) > 0:
-                fig.add_trace(
-                    go.Scatter(
-                        x=dates,
-                        y=filtered_dca,
-                        name="DCA Price",
-                        line=dict(width=2, dash="dash", color=self.colors["green"]),
-                        hovertemplate='<b>Dollar Cost Average</b><br>'
-                        + 'Date: %{x|%d %b %Y}<br>'
-                        + 'DCA: $%{y:.2f}<extra></extra>',
+                # Filter out NaN values for DCA line display
+                valid_dca_mask = ~np.isnan(filtered_dca)
+                if np.any(valid_dca_mask):
+                    valid_dates = np.array(dates)[valid_dca_mask]
+                    valid_dca = np.array(filtered_dca)[valid_dca_mask]
+                    
+                    fig.add_trace(
+                        go.Scatter(
+                            x=valid_dates,
+                            y=valid_dca,
+                            name="DCA Price",
+                            line=dict(width=2, dash="dash", color=self.colors["green"]),
+                            hovertemplate='<b>Dollar Cost Average</b><br>'
+                            + 'Date: %{x|%d %b %Y}<br>'
+                            + 'DCA: $%{y:.2f}<extra></extra>',
+                        )
                     )
-                )
                 
                 # Filter buy orders for timeframe
                 if len(ticker_data.buy_dates) > 0:

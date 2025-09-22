@@ -66,12 +66,14 @@ class Config:
                 "VUAA.L": "VUAA.EU",
                 "EQAC.SW": "EQAC.EU",
                 "EUR=X": "USD/EUR",
+                "AETF.AT": "AETF.GR"
             },
             start_date="2024-06-01",
             y_axis_ticks={
                 "VUAA.EU": 5,
                 "EQAC.EU": 20,
                 "USD/EUR": 0.02,
+                "AETF.GR": 5
             },
             portfolio_profit_tick=200,
             portfolio_yield_tick=3

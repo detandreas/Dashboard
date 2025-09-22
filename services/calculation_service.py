@@ -78,21 +78,36 @@ class StandardCalculationService(PortfolioCalculator):
             logger.error(f"Error calculating performance metrics: {e}")
             raise
     
-    def calculate_profit_series(self, price_data: pd.DataFrame, dca: List[float], shares: List[float]) -> np.ndarray:
-        """Calculate daily profit progression."""
+    def calculate_profit_series(self, price_data: pd.DataFrame, dca: List[float], shares: List[float], buy_trades: List[Trade] = None) -> np.ndarray:
+        """Calculate daily profit progression using the same logic as current P&L."""
         try:
             # Handle empty data case
             if not dca or not shares:
                 return np.array([0.0] * len(price_data))
             
+            # Find the first trade date to avoid calculating profit before any trades
+            first_trade_date = None
+            if buy_trades:
+                first_trade_date = min(trade.date for trade in buy_trades)
+            
             profit_series = []
             
-            for i, (_, row) in enumerate(price_data.iterrows()):
+            for i, (date, row) in enumerate(price_data.iterrows()):
                 close_price = row['Close']
+                
+                # If we have a first trade date and current date is before it, profit should be 0
+                if first_trade_date and date < first_trade_date:
+                    profit_series.append(0.0)
+                    continue
                 
                 if (i < len(dca) and i < len(shares) and 
                     not np.isnan(dca[i]) and shares[i] > 0):
-                    daily_profit = (close_price - dca[i]) * shares[i]
+                    # Use the same logic as current P&L: total_shares * current_price - total_invested
+                    # where total_invested = dca[i] * shares[i] (cumulative cost up to this day)
+                    total_invested = dca[i] * shares[i]  # This is the cumulative cost
+                    total_shares = shares[i]  # This is the cumulative shares
+                    current_value = total_shares * close_price
+                    daily_profit = current_value - total_invested
                     profit_series.append(daily_profit)
                 else:
                     profit_series.append(0.0)
@@ -129,7 +144,7 @@ class StandardCalculationService(PortfolioCalculator):
             dca, shares_per_day = self.calculate_dca(price_df, buy_trades)
             
             # Calculate profit series
-            profit_series = self.calculate_profit_series(price_df, dca, shares_per_day)
+            profit_series = self.calculate_profit_series(price_df, dca, shares_per_day, buy_trades)
             
             # Calculate performance metrics
             current_price = price_df['Close'].iloc[-1] if len(price_df) > 0 else 0

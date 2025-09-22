@@ -94,7 +94,7 @@ class TickersPage(BasePage):
         try:
             initial_chart_fig = self._create_price_chart(default_ticker, "All")
             initial_chart = self.ui_factory.create_chart_container(initial_chart_fig)
-            initial_metrics = self._get_price_metrics(default_ticker)
+            initial_metrics = self._get_price_metrics(default_ticker, "All")
         except Exception as e:
             logger.error(f"Error creating initial ticker chart: {e}")
             initial_chart = html.Div([
@@ -174,21 +174,47 @@ class TickersPage(BasePage):
             
             # Add DCA line if available
             if ticker_data.has_trades and len(filtered_dca) > 0:
-                fig.add_trace(
-                    go.Scatter(
-                        x=dates,
-                        y=filtered_dca,
-                        name="DCA Price",
-                        line=dict(width=2, dash="dash", color=self.colors["green"]),
-                        hovertemplate='<b>Dollar Cost Average</b><br>'
-                        + 'Date: %{x|%d %b %Y}<br>'
-                        + 'DCA: $%{y:.2f}<extra></extra>',
+                # Filter out NaN values for DCA line display
+                valid_dca_mask = ~np.isnan(filtered_dca)
+                if np.any(valid_dca_mask):
+                    valid_dates = np.array(dates)[valid_dca_mask]
+                    valid_dca = np.array(filtered_dca)[valid_dca_mask]
+                    
+                    fig.add_trace(
+                        go.Scatter(
+                            x=valid_dates,
+                            y=valid_dca,
+                            name="DCA Price",
+                            line=dict(width=2, dash="dash", color=self.colors["green"]),
+                            hovertemplate='<b>Dollar Cost Average</b><br>'
+                            + 'Date: %{x|%d %b %Y}<br>'
+                            + 'DCA: $%{y:.2f}<extra></extra>',
+                        )
                     )
-                )
                 
                 # Filter buy orders for timeframe
                 if len(ticker_data.buy_dates) > 0:
-                    buy_mask = [date >= dates[0] and date <= dates[-1] for date in ticker_data.buy_dates]
+                    # Use the same timeframe filtering logic as the price data
+                    if timeframe != "All":
+                        end_date = ticker_data.price_history.index[-1]
+                        # Use end of day for end_date to include all trades on the last day
+                        end_date = end_date.replace(hour=23, minute=59, second=59)
+                        
+                        if timeframe == "1M":
+                            start_date = end_date - timedelta(days=30)
+                        elif timeframe == "3M":
+                            start_date = end_date - timedelta(days=90)
+                        elif timeframe == "6M":
+                            start_date = end_date - timedelta(days=180)
+                        elif timeframe == "1Y":
+                            start_date = end_date - timedelta(days=365)
+                        else:
+                            start_date = ticker_data.price_history.index[0]
+                        
+                        buy_mask = [date >= start_date and date <= end_date for date in ticker_data.buy_dates]
+                    else:
+                        buy_mask = [True] * len(ticker_data.buy_dates)
+                    
                     filtered_buy_dates = [date for i, date in enumerate(ticker_data.buy_dates) if buy_mask[i]]
                     filtered_buy_prices = [price for i, price in enumerate(ticker_data.buy_prices) if buy_mask[i]]
                     
@@ -448,7 +474,7 @@ class TickersPage(BasePage):
                 template="plotly_dark"
             )
     
-    def _get_price_metrics(self, ticker_data: TickerData) -> html.Div:
+    def _get_price_metrics(self, ticker_data: TickerData, timeframe: str = "All") -> html.Div:
         """Get price metrics for the side panel."""
         if ticker_data.price_history is None:
             return html.Div([
@@ -581,7 +607,7 @@ class TickersPage(BasePage):
             "justifyContent": "space-evenly"
         })
     
-    def _get_volume_metrics(self, ticker_data: TickerData) -> html.Div:
+    def _get_volume_metrics(self, ticker_data: TickerData, timeframe: str = "All") -> html.Div:
         """Get volume metrics for the side panel."""
         if ticker_data.price_history is None or "Volume" not in ticker_data.price_history.columns:
             return html.Div([

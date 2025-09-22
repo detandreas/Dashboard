@@ -99,18 +99,37 @@ class PortfolioSnapshot:
     
     @property
     def total_profit_series(self) -> np.ndarray:
-        """Calculate total portfolio profit series."""
+        """Calculate total portfolio profit series, considering only tickers with trades on each day."""
         if not self.tickers:
             return np.array([])
         
-        total_series = None
+        # Get the date range from the first ticker that has price history
+        dates = None
         for ticker in self.tickers:
-            if total_series is None:
-                total_series = ticker.profit_series.copy()
-            else:
-                total_series += ticker.profit_series
+            if ticker.has_trades and len(ticker.price_history) > 0:
+                dates = ticker.price_history.index
+                break
         
-        return total_series if total_series is not None else np.array([])
+        if dates is None:
+            return np.array([])
+        
+        total_series = np.zeros(len(dates))
+        
+        for ticker in self.tickers:
+            if not ticker.has_trades or len(ticker.price_history) == 0:
+                continue
+                
+            # Only add profit for days when this ticker had trades
+            for i, date in enumerate(dates):
+                if i < len(ticker.profit_series):
+                    # Check if this ticker had any trades before or on this date
+                    ticker_has_trades_by_date = any(
+                        trade_date <= date for trade_date in ticker.buy_dates
+                    )
+                    if ticker_has_trades_by_date:
+                        total_series[i] += ticker.profit_series[i]
+        
+        return total_series
     
     @property
     def portfolio_yield_series(self) -> np.ndarray:

@@ -87,13 +87,23 @@ class YahooFinanceDataService(DataServiceInterface):
                 frames[symbol] = df
                 logger.debug(f"Downloaded {len(df)} records for {symbol}")
             
-            # Align dates across all symbols
+            # Align dates across all symbols using union instead of intersection
             if frames:
-                common_dates = set.intersection(*(set(df.index) for df in frames.values()))
-                for symbol in frames:
-                    frames[symbol] = frames[symbol].loc[sorted(common_dates)]
+                # Get all unique dates from all symbols
+                all_dates = set()
+                for df in frames.values():
+                    all_dates.update(df.index)
                 
-                logger.info(f"Aligned data to {len(common_dates)} common dates")
+                # Create a complete date range
+                complete_dates = sorted(all_dates)
+                
+                # Reindex each symbol to include all dates, filling missing values with forward fill
+                for symbol in frames:
+                    frames[symbol] = frames[symbol].reindex(complete_dates)
+                    # Forward fill missing values with the last known price
+                    frames[symbol] = frames[symbol].fillna(method='ffill')
+                
+                logger.info(f"Aligned data to {len(complete_dates)} total dates (union of all symbols)")
             
             self._price_cache = frames
             return frames

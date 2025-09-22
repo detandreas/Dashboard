@@ -586,17 +586,17 @@ class DashboardApplication:
                 if chart_type == "price":
                     chart_fig = tickers_page._create_price_chart(ticker_data, timeframe)
                     chart = self.ui_factory.create_chart_container(chart_fig)
-                    metrics = tickers_page._get_price_metrics(ticker_data)
+                    metrics = tickers_page._get_price_metrics(ticker_data, timeframe)
                     
                 elif chart_type == "profit":
                     chart_fig = tickers_page._create_profit_chart(ticker_data, timeframe)
                     chart = self.ui_factory.create_chart_container(chart_fig)
-                    metrics = tickers_page._get_profit_metrics(ticker_data)
+                    metrics = tickers_page._get_profit_metrics(ticker_data, timeframe)
                     
                 elif chart_type == "volume":
                     chart_fig = tickers_page._create_volume_chart(ticker_data, timeframe)
                     chart = self.ui_factory.create_chart_container(chart_fig)
-                    metrics = tickers_page._get_volume_metrics(ticker_data)
+                    metrics = tickers_page._get_volume_metrics(ticker_data, timeframe)
                     
                 else:
                     raise PreventUpdate

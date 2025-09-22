@@ -192,15 +192,6 @@ class CardComponentsMixin:
         )
 
         cards = []
-        cards.append(
-            self.create_enhanced_metric_card(
-                "Invested", 
-                f"${metrics.invested:.2f}",
-                self.colors["text_primary"],
-                "cash"
-            )
-        )
-
         if show_entry_price and metrics.average_buy_price > 0:
             cards.append(
                 self.create_enhanced_metric_card(
@@ -210,6 +201,16 @@ class CardComponentsMixin:
                     "average"
                 )
             )
+
+        
+        cards.append(
+            self.create_enhanced_metric_card(
+                "Invested", 
+                f"${metrics.invested:.2f}",
+                self.colors["text_primary"],
+                "cash"
+            )
+        )
 
         cards.extend([
             self.create_enhanced_metric_card(

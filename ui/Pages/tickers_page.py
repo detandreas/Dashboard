@@ -185,6 +185,7 @@ class TickersPage(BasePage):
                             x=valid_dates,
                             y=valid_dca,
                             name="DCA Price",
+                            mode="lines",
                             line=dict(width=2, dash="dash", color=self.colors["green"]),
                             hovertemplate='<b>Dollar Cost Average</b><br>'
                             + 'Date: %{x|%d %b %Y}<br>'

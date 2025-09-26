@@ -227,7 +227,7 @@ class TickersPage(BasePage):
                                 mode="markers",
                                 name="Buy Orders",
                                 marker=dict(
-                                    size=12, color=self.colors["red"], symbol="triangle-up"
+                                    size=10, color=self.colors["red"], symbol="circle"
                                 ),
                                 hovertemplate='<b>Buy Order</b><br>'
                                 + 'Date: %{x|%d %b %Y}<br>'

@@ -43,6 +43,16 @@ class PortfolioComponentsMixin:
                 ticker.metrics.current_value for ticker in invested_tickers
             )
 
+                        # Ορίζουμε τα χρώματα που χρησιμοποιούνται στο pie chart
+            pie_colors = [
+                "#6366f1",  # Indigo
+                "#06b6d4",  # Cyan
+                "#10b981",  # Emerald
+                "#8b5cf6",  # Violet
+                "#f59e0b",  # Amber
+                "#ef4444",  # Red
+            ]
+
             fig = go.Figure(
                 data=[
                     go.Pie(
@@ -55,14 +65,7 @@ class PortfolioComponentsMixin:
                         + 'Percentage: %{percent}<br>'
                         + '<extra></extra>',
                         marker=dict(
-                            colors=[
-                                "#6366f1",  # Indigo
-                                "#06b6d4",  # Cyan
-                                "#10b981",  # Emerald
-                                "#8b5cf6",  # Violet
-                                "#f59e0b",  # Amber
-                                "#ef4444",  # Red
-                            ],
+                            colors=pie_colors,
                             line=dict(color="#374151", width=2),
                         ),
                     )
@@ -89,7 +92,10 @@ class PortfolioComponentsMixin:
             )
 
             breakdown_items = []
-            for ticker, percentage, value in zip(symbols, percentages, values):
+            for i, (ticker, percentage, value) in enumerate(zip(symbols, percentages, values)):
+                # Χρησιμοποιούμε το ίδιο χρώμα με το pie chart
+                ticker_color = pie_colors[i % len(pie_colors)]
+
                 breakdown_items.append(
                     html.Div(
                         [
@@ -100,7 +106,7 @@ class PortfolioComponentsMixin:
                                         style={
                                             "fontWeight": "bold",
                                             "fontSize": "0.8rem",
-                                            "color": self.colors["accent"],
+                                            "color": ticker_color,
                                         },
                                     ),
                                     html.Span(

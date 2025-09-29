@@ -137,6 +137,10 @@ class CardComponentsMixin:
 
     def _create_metric_icon(self, icon_type: str, is_positive: Optional[bool], color: str) -> html.Div:
         """Create icon element for metric cards."""
+        if icon_type is None:
+            return html.Div()
+        
+
         if icon_type == "cash":
             return html.Div(className="icon-cash", style={
                 "width": "32px",
@@ -146,6 +150,12 @@ class CardComponentsMixin:
         elif icon_type == "portfolio":
             return html.Div(className="icon-portfolio", style={
                 "width": "32px", 
+                "height": "32px",
+                "margin": "0 auto 5px auto"
+            })
+        elif icon_type == 'bag':
+            return html.Div(className="icon-bag", style={
+                "width": "32px",            
                 "height": "32px",
                 "margin": "0 auto 5px auto"
             })
@@ -159,8 +169,6 @@ class CardComponentsMixin:
                 "height": "32px",
                 "margin": "0 auto 5px auto"
             })
-        else:
-            return html.Div()
 
     def _create_profit_loss_icon(self, is_positive: bool, color: str) -> html.Div:
         """Create professional profit/loss icon."""
@@ -295,26 +303,25 @@ class CardComponentsMixin:
                 self.create_enhanced_metric_card(
                     "Total Trades",
                     str(total_trades),
-                    self.colors["accent"],
+                    self.colors["text_primary"],
                     "portfolio"
                 ),
                 self.create_enhanced_metric_card(
                     "Unique Tickers",
                     str(unique_tickers),
                     self.colors["text_primary"],
-                    "cash"
+                    "bag"
                 ),
                 self.create_enhanced_metric_card(
                     "Total Invested",
                     f"${total_invested:.2f}",
-                    self.colors["green"],
+                    self.colors["text_primary"],
                     "cash"
                 ),
                 self.create_enhanced_metric_card(
                     "Date Range",
                     date_range,
-                    self.colors["text_primary"],
-                    "portfolio"
+                    self.colors["text_primary"]
                 ),
             ],
             style={

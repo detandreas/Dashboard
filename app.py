@@ -123,11 +123,11 @@ class DashboardApplication:
         )
         def handle_navigation(tickers_clicks, portfolio_clicks, trades_clicks, finances_clicks, settings_clicks):
             """Handle sidebar navigation clicks."""
-            ctx = dash.callback_context
-            if not ctx.triggered:
+            ctx = dash.ctx
+            #Για το πρωτο render
+            if ctx.triggered_id is None:
                 return "tickers", "nav-item active", "nav-item", "nav-item", "nav-item", "nav-item settings-button"
-            
-            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+                
             page_map = {
                 "nav-tickers": "tickers",
                 "nav-portfolio": "portfolio", 
@@ -136,7 +136,7 @@ class DashboardApplication:
                 "nav-settings": "settings"
             }
             
-            active_page = page_map.get(button_id, "tickers")
+            active_page = page_map.get(ctx.triggered_id, "tickers")
             
             # Set active classes
             classes = ["nav-item"] * 4 + ["nav-item settings-button"]
@@ -165,7 +165,7 @@ class DashboardApplication:
                 },
                 "trades": {
                     "title": "Trading History",
-                    "subtitle": "Complete transaction log with filtering and sorting"
+                    "subtitle": "Complete transaction log"
                 },
                 "finances": {
                     "title": "Personal Finances",
@@ -225,16 +225,16 @@ class DashboardApplication:
             prevent_initial_call=True
         )
         def handle_modal_visibility(add_clicks, close_clicks, cancel_clicks, save_clicks, active_page):
-            """Διαχειρίζεται την εμφάνιση/κρύψιμο του modal."""
-            ctx = dash.callback_context
-            if not ctx.triggered:
+            """Διαχειρίζεται την εμφάνιση/κρύψιμο του modal για το Goals section."""
+            ctx = dash.ctx
+            if ctx.triggered_id is None:
                 raise PreventUpdate
             
             # Επιτρέπουμε δράση μόνο στη σελίδα portfolio
             if active_page != "portfolio":
                 raise PreventUpdate
             
-            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            trigger_id = ctx.triggered_id
             
             if trigger_id == "add-goal-btn":
                 # Ανοίγει ΜΟΝΟ όταν υπάρχει πραγματικό κλικ (>0)
@@ -255,16 +255,16 @@ class DashboardApplication:
             Output("milestone-inputs", "children"),
             [Input("milestone-count-slider", "value"),
             Input("add-goal-btn", "n_clicks")],
-            [State("goal-setup-modal", "style")],
+            State("goal-setup-modal", "style"),
             prevent_initial_call=True
         )
         def update_milestone_inputs(milestone_count, add_clicks, modal_style):
             """Ενημερώνει τα milestone inputs μόνο όταν το modal είναι ανοικτό ή όταν πατηθεί το add."""
-            ctx = dash.callback_context
-            if not ctx.triggered:
+            ctx = dash.ctx
+            if ctx.triggered_id is None:
                 raise PreventUpdate
             
-            trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            trigger_id = ctx.triggered_id
             
             # Επιτρέπουμε τη δημιουργία inputs όταν πατηθεί το add-goal-btn
             if trigger_id == "add-goal-btn" and add_clicks:
@@ -355,7 +355,8 @@ class DashboardApplication:
             prevent_initial_call=True
         )
         def toggle_goal_view(toggle_clicks, current_mode, active_page):
-            """Εναλλάσσει τον τρόπο προβολής του goal."""
+            """Εναλλάσσει τον τρόπο προβολής του goal
+            Overall progress <--> Next milestone."""
             if not toggle_clicks or active_page != "portfolio":
                 raise PreventUpdate
             
@@ -402,11 +403,11 @@ class DashboardApplication:
             if active_page != "portfolio":
                 raise PreventUpdate
                 
-            ctx = dash.callback_context
-            if not ctx.triggered:
+            ctx = dash.ctx
+            if ctx.triggered_id is None:
                 raise PreventUpdate
             
-            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            button_id = ctx.triggered_id
             timeframe_map = {
                 "portfolio-timeframe-1M": "1M",
                 "portfolio-timeframe-3M": "3M", 
@@ -496,11 +497,11 @@ class DashboardApplication:
             if active_page != "tickers":
                 raise PreventUpdate
                 
-            ctx = dash.callback_context
-            if not ctx.triggered:
+            ctx = dash.ctx
+            if ctx.triggered_id is None:
                 raise PreventUpdate
             
-            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            button_id = ctx.triggered_id
             timeframe_map = {
                 "tickers-timeframe-1M": "1M",
                 "tickers-timeframe-3M": "3M", 
@@ -553,6 +554,75 @@ class DashboardApplication:
             except Exception as e:
                 self.logger.error(f"Error updating ticker performance cards: {e}")
                 return html.Div("Error loading ticker data")
+        
+        @self.app.callback(
+            Output("ticker-trade-details", "children"),
+            [Input("ticker-selector", "value")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_ticker_trade_details(selected_ticker, active_page):
+            """Update trade details card based on selected ticker."""
+            if active_page != "tickers" or not selected_ticker:
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                ticker_data = next((t for t in portfolio.tickers if t.symbol == selected_ticker), None)
+                
+                if ticker_data:
+                    return self.ui_factory.create_ticker_trade_details(
+                        len(ticker_data.buy_dates),
+                        int(sum(ticker_data.buy_quantities))
+                    )
+                else:
+                    return html.Div("Ticker not found")
+                    
+            except Exception as e:
+                self.logger.error(f"Error updating ticker trade details: {e}")
+                return html.Div("Error loading ticker trade details")
+        
+        @self.app.callback(
+            Output("ticker-recent-trade", "children"),
+            [Input("ticker-selector", "value")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_ticker_recent_trade(selected_ticker, active_page):
+            """Update recent trade card based on selected ticker."""
+            if active_page != "tickers" or not selected_ticker:
+                raise PreventUpdate
+            
+            try:
+                portfolio = self.portfolio_service.get_portfolio_snapshot()
+                ticker_data = next((t for t in portfolio.tickers if t.symbol == selected_ticker), None)
+                
+                if ticker_data and ticker_data.has_trades:
+                    recent_date = ticker_data.buy_dates[0]
+                    recent_price = ticker_data.buy_prices[0]
+                    recent_quantity = ticker_data.buy_quantities[0]
+                    
+                    return self.ui_factory.create_recent_trade_card(
+                        date=recent_date.strftime("%Y-%m-%d"),
+                        trade_type="Buy",
+                        quantity=recent_quantity,
+                        price=recent_price
+                    )
+                else:
+                    return html.Div([
+                        html.H3("Recent Trade", style={
+                            "color": self.ui_factory.colors["accent"],
+                            "textAlign": "center"
+                        }),
+                        html.P("No trades available", style={
+                            "textAlign": "center",
+                            "color": self.ui_factory.colors["text_secondary"]
+                        })
+                    ], style=self.ui_factory.config.ui.card_style)
+                    
+            except Exception as e:
+                self.logger.error(f"Error updating ticker recent trade: {e}")
+                return html.Div("Error loading recent trade")
         
         @self.app.callback(
             [Output("tickers-dynamic-chart-container", "children"),

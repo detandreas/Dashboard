@@ -433,3 +433,198 @@ class CardComponentsMixin:
                 ),
             ]
         )
+
+    def create_ticker_trade_details(self, total_buy_orders: int, Quantity: int) -> html.Div:
+        """Create trade details card for individual ticker analysis."""
+        return html.Div(
+            [
+                html.H3(
+                    "Trade Details",
+                    style={
+                        "color": self.colors["accent"],
+                        "marginBottom": "20px",
+                        "fontSize": "1.3rem",
+                        "fontWeight": "600",
+                        "textAlign": "center"
+                    },
+                ),
+                html.Div(
+                    [
+                        # Total Buy Orders section
+                        html.Div(
+                            [
+                                html.H6(
+                                    "Total Buy Orders",
+                                    style={
+                                        "color": self.colors["text_secondary"],
+                                        "marginBottom": "10px",
+                                        "fontSize": "0.9rem",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                                html.H4(
+                                    f"{total_buy_orders}",
+                                    style={
+                                        "color": self.colors["text_primary"],
+                                        "margin": "0",
+                                        "fontSize": "1.5rem",
+                                        "fontWeight": "bold",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                            ],
+                            style={
+                                "flex": "1",
+                                "minWidth": "200px",
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "center"
+                            }
+                        ),
+                        # Total Invested section
+                        html.Div(
+                            [
+                                html.H6(
+                                    "Quantity",
+                                    style={
+                                        "color": self.colors["text_secondary"],
+                                        "marginBottom": "10px",
+                                        "fontSize": "0.9rem",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                                html.H4(
+                                    Quantity,
+                                    style={
+                                        "color": self.colors["text_primary"],
+                                        "margin": "0",
+                                        "fontSize": "1.5rem",
+                                        "fontWeight": "bold",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                            ],
+                            style={
+                                "flex": "1",
+                                "minWidth": "200px",
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "center"
+                            }
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "flexWrap": "wrap",
+                        "gap": "30px",
+                    },
+                ),
+            ],
+            style={
+                **self.card_style,
+                "marginBottom": "20px",
+                "padding": "20px",
+            }
+        )
+
+    def create_recent_trade_card(self, date: str, trade_type: str, quantity: float, price: float) -> html.Div:
+        """Create recent trade card for individual ticker analysis."""
+        return html.Div(
+            [
+                html.H3(
+                    "Recent Trade",
+                    style={
+                        "color": self.colors["accent"],
+                        "marginBottom": "20px",
+                        "fontSize": "1.3rem",
+                        "fontWeight": "600",
+                        "textAlign": "center"
+                    },
+                ),
+                html.Div(
+                    [
+                        # Left column - Labels
+                        html.Div(
+                            [
+                                html.Div("Date", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "500"
+                                }),
+                                html.Div("Type", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "500"
+                                }),
+                                html.Div("Quantity", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "500"
+                                }),
+                                html.Div("Price", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "fontWeight": "500"
+                                }),
+                            ],
+                            style={
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "flex-end",
+                                "paddingRight": "50px"
+                            }
+                        ),
+                        # Right column - Values
+                        html.Div(
+                            [
+                                html.Div(date, style={
+                                    "color": self.colors["text_primary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "bold"
+                                }),
+                                html.Div(trade_type, style={
+                                    "color": self.colors["green"] if trade_type.lower() == "buy" else self.colors["red"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "bold"
+                                }),
+                                html.Div(f"{quantity:.2f}", style={
+                                    "color": self.colors["text_primary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "bold"
+                                }),
+                                html.Div(f"${price:.2f}", style={
+                                    "color": self.colors["text_primary"],
+                                    "fontSize": "1rem",
+                                    "fontWeight": "bold"
+                                }),
+                            ],
+                            style={
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "flex-start",
+                                "paddingLeft": "10px"
+                            }
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "alignItems": "flex-start",
+                        "gap": "100px",
+                        "padding": "10px 0"
+                    },
+                ),
+            ],
+            style={
+                **self.card_style,
+                "marginBottom": "20px",
+                "padding": "20px",
+            }
+        )

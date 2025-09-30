@@ -29,11 +29,15 @@ class TickersPage(BasePage):
             if not traded_tickers:
                 return self._create_no_data_message("No ticker data available")
             
+            default_ticker = traded_tickers[0]
+            
             sections = [
                 # Ticker selector and overview cards
                 self._create_ticker_overview_section(traded_tickers),
                 # Combined chart section with dropdown
-                self._create_combined_chart_section(portfolio, traded_tickers)
+                self._create_combined_chart_section(portfolio, traded_tickers),
+                # Trade details card for selected ticker
+                self._create_trade_details_card(traded_tickers)
             ]
             
             return html.Div(sections)
@@ -41,6 +45,62 @@ class TickersPage(BasePage):
         except Exception as e:
             logger.error(f"Error rendering tickers page: {e}")
             return self._create_error_message(str(e))
+        
+    def _create_trade_details_card(self, traded_tickers : list[TickerData]) -> html.Div:
+        """Create trade details and recent trade cards side by side."""
+        default_ticker = traded_tickers[0]
+
+        return html.Div(
+            [
+                # Recent Trade card (left)
+                html.Div(
+                    self._create_recent_trade_content(default_ticker),
+                    id="ticker-recent-trade",
+                    style={"flex": "1", "minWidth": "350px"}
+                ),
+                # Trade Details card (right)
+                html.Div(
+                    self.ui_factory.create_ticker_trade_details(
+                        len(default_ticker.buy_dates),
+                        int(sum(default_ticker.buy_quantities))
+                    ),
+                    id="ticker-trade-details",
+                    style={"flex": "1", "minWidth": "350px"}
+                ),
+            ],
+            style={
+                "display": "flex",
+                "justifyContent": "center",
+                "flexWrap": "wrap",
+                "gap": "20px",
+            }
+        )
+    
+    def _create_recent_trade_content(self, ticker_data: TickerData) -> html.Div:
+        """Create recent trade card content for the given ticker."""
+        if not ticker_data.has_trades:
+            return html.Div([
+                html.H3("Recent Trade", style={
+                    "color": self.colors["accent"],
+                    "textAlign": "center"
+                }),
+                html.P("No trades available", style={
+                    "textAlign": "center",
+                    "color": self.colors["text_secondary"]
+                })
+            ], style=self.config.ui.card_style)
+        
+        # Get the most recent trade (first item in the lists)
+        recent_date = ticker_data.buy_dates[0]
+        recent_price = ticker_data.buy_prices[0]
+        recent_quantity = ticker_data.buy_quantities[0]
+        
+        return self.ui_factory.create_recent_trade_card(
+            date=recent_date.strftime("%Y-%m-%d"),
+            trade_type="Buy",
+            quantity=recent_quantity,
+            price=recent_price
+        )
     
     def _create_ticker_overview_section(self, traded_tickers) -> html.Div:
         """Create ticker overview section with selector and cards."""

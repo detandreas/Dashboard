@@ -683,6 +683,57 @@ class DashboardApplication:
                 ])
                 return error_content, html.Div()
         
+        # Ticker table USD/EUR filter callback
+        @self.app.callback(
+            Output("tickers-table-content", "children"),
+            [Input("exclude-usd-toggle", "value")],
+            [State("portfolio-tickers-data", "data")]
+        )
+        def update_tickers_table(exclude_values, portfolio_data):
+            """Update tickers table based on USD/EUR exclusion toggle."""
+            if portfolio_data is None:
+                raise PreventUpdate
+            
+            exclude_usd = "exclude" in (exclude_values or [])
+            
+            # Reconstruct tickers from stored data
+            from models.portfolio import TickerData, PerformanceMetrics
+            import pandas as pd
+            import numpy as np
+            from datetime import datetime
+            
+            tickers = []
+            for ticker_data in portfolio_data["tickers"]:
+                # Create price history with latest price
+                price_df = pd.DataFrame({
+                    'Close': [ticker_data["latest_price"]]
+                }, index=[datetime.now()])
+                
+                # Create minimal TickerData for table display
+                ticker = TickerData(
+                    symbol=ticker_data["symbol"],
+                    price_history=price_df,
+                    dca_history=[ticker_data["average_buy_price"]],
+                    shares_per_day=[ticker_data["total_shares"]],
+                    profit_series=np.array([ticker_data["profit_absolute"]]),
+                    buy_dates=[datetime.now()],  # Dummy date
+                    buy_prices=[ticker_data["average_buy_price"]],
+                    buy_quantities=[ticker_data["total_shares"]],
+                    metrics=PerformanceMetrics(
+                        invested=0,
+                        current_value=ticker_data["current_value"],
+                        profit_absolute=ticker_data["profit_absolute"],
+                        return_percentage=ticker_data["return_percentage"],
+                        average_buy_price=ticker_data["average_buy_price"]
+                    )
+                )
+                tickers.append(ticker)
+            
+            return self.ui_factory.create_tickers_table(
+                tickers=tickers,
+                total_portfolio_value=portfolio_data["total_portfolio_value"],
+                exclude_usd=exclude_usd
+            )
         
     def _create_milestone_inputs(self, count: int, suggestions: list = None) -> list:
         """Δημιουργεί input fields για milestones."""

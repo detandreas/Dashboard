@@ -57,7 +57,12 @@ class PortfolioPage(BasePage):
             sections = [
                 top_row,
                 # Combined chart section with dropdown
-                self._create_combined_chart_section(portfolio)
+                self._create_combined_chart_section(portfolio),
+                # Tickers table with USD/EUR filter
+                self.ui_factory.create_tickers_table_section(
+                    tickers=portfolio.tickers,
+                    total_portfolio_value=portfolio.total_metrics.current_value
+                )
             ]
 
             return html.Div(sections)

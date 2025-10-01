@@ -803,7 +803,7 @@ class PortfolioPage(BasePage):
             
             if ticker_data_list and ticker_data_list[0].price_history is not None:
                 dates = ticker_data_list[0].price_history.index
-                total_profit = sum(ticker.profit_series for ticker in ticker_data_list)
+                total_profit = sum(ticker.profit_series for ticker in ticker_data_list if ticker.symbol != "USD/EUR")
                 
                 # Apply timeframe filter
                 filtered_dates, filtered_profit = self._filter_data_by_timeframe(dates, total_profit, timeframe)

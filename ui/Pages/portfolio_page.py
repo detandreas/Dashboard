@@ -377,6 +377,7 @@ class PortfolioPage(BasePage):
                 current_profit = metrics["profit_absolute"]
                 current_return = metrics["return_percentage"]
                 profit_color = self.colors["green"] if current_profit >= 0 else self.colors["red"]
+                pnl_label = "Current P&L (incl. USD/EUR)" if include_usd else "Current P&L"
                 
                 # Stacked metrics for right side
                 return html.Div([
@@ -404,7 +405,7 @@ class PortfolioPage(BasePage):
                     ], style={"marginBottom": "15px"}),
                     html.Div([
                         self.ui_factory.create_side_metric_card(
-                            "Current P&L",
+                            pnl_label,
                             f"${current_profit:.2f}",
                             profit_color,
                             f"Return: {current_return:.2f}%"
@@ -814,17 +815,43 @@ class PortfolioPage(BasePage):
         total_series = np.zeros(len(base_dates))
 
         for ticker in ticker_data_list:
-            if not ticker.has_trades or len(ticker.price_history) == 0:
+            if len(ticker.price_history) == 0:
                 continue
 
-            if not include_usd and ticker.symbol == "USD/EUR":
+            is_usd_ticker = ticker.symbol == "USD/EUR"
+            if is_usd_ticker and not include_usd:
+                continue
+
+            if not is_usd_ticker and not ticker.has_trades:
                 continue
 
             profit_series = ticker.profit_series
+            if len(profit_series) == 0:
+                continue
+
+            if is_usd_ticker:
+                for i in range(min(len(base_dates), len(profit_series))):
+                    total_series[i] += profit_series[i]
+                continue
+
+            trade_dates = sorted(ticker.buy_dates)
+            if not trade_dates:
+                continue
+
+            cumulative_trade_index = 0
+            has_position = False
+
             for i, date in enumerate(base_dates):
-                if i < len(profit_series):
-                    if any(trade_date <= date for trade_date in ticker.buy_dates):
-                        total_series[i] += profit_series[i]
+                if i >= len(profit_series):
+                    break
+
+                while (cumulative_trade_index < len(trade_dates)
+                       and trade_dates[cumulative_trade_index] <= date):
+                    has_position = True
+                    cumulative_trade_index += 1
+
+                if has_position:
+                    total_series[i] += profit_series[i]
 
         return total_series
 
@@ -837,7 +864,9 @@ class PortfolioPage(BasePage):
         total_current = sum(t.metrics.current_value for t in equity_tickers)
         total_profit = sum(t.metrics.profit_absolute for t in equity_tickers)
 
-        if include_usd:
+        if include_usd and usd_tickers:
+            total_invested += sum(t.metrics.invested for t in usd_tickers)
+            total_current += sum(t.metrics.current_value for t in usd_tickers)
             total_profit += sum(t.metrics.profit_absolute for t in usd_tickers)
 
         return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0.0

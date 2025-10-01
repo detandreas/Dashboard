@@ -375,9 +375,8 @@ class PortfolioPage(BasePage):
                 # Current P&L values
                 metrics = self._calculate_portfolio_metrics(portfolio, include_usd)
                 current_profit = metrics["profit_absolute"]
-                current_return = metrics["return_percentage"]
                 profit_color = self.colors["green"] if current_profit >= 0 else self.colors["red"]
-                pnl_label = "Current P&L (incl. USD/EUR)" if include_usd else "Current P&L"
+                pnl_label = "Current P&L"
                 
                 # Stacked metrics for right side
                 return html.Div([
@@ -407,8 +406,8 @@ class PortfolioPage(BasePage):
                         self.ui_factory.create_side_metric_card(
                             pnl_label,
                             f"${current_profit:.2f}",
-                            profit_color,
-                            f"Return: {current_return:.2f}%"
+                            profit_color
+                            
                         )
                     ])
                 ], style={

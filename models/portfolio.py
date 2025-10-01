@@ -52,7 +52,7 @@ class TickerData:
     shares_per_day: List[float]
     profit_series: np.ndarray
     
-    # Trade data
+    # Trade data 
     buy_dates: List[datetime]
     buy_prices: List[float]
     buy_quantities: List[float]
@@ -116,7 +116,7 @@ class PortfolioSnapshot:
         total_series = np.zeros(len(dates))
         
         for ticker in self.tickers:
-            if not ticker.has_trades or len(ticker.price_history) == 0:
+            if not ticker.has_trades or len(ticker.price_history) == 0 or ticker.symbol == "USD/EUR":
                 continue
                 
             # Only add profit for days when this ticker had trades

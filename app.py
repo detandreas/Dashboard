@@ -102,7 +102,10 @@ class DashboardApplication:
             self.ui_factory.create_goal_setup_modal(),
             
             # Hidden store for goal view mode
-            dcc.Store(id="goal-view-mode", data=True)
+            dcc.Store(id="goal-view-mode", data=True),
+            
+            # Hidden store for USD/EUR toggle state
+            dcc.Store(id="usd-toggle-state", data=False)
         ], className="app-container")
     def _register_callbacks(self):
         """Register all Dash callbacks."""
@@ -199,9 +202,10 @@ class DashboardApplication:
         
         @self.app.callback(
             Output("dashboard-summary", "children"),
-            Input("active-page", "data")
+            [Input("active-page", "data"),
+             Input("usd-toggle-state", "data")]
         )
-        def render_dashboard_summary(page_name: str):
+        def render_dashboard_summary(page_name: str, include_usd: bool):
             """Render dashboard summary cards."""
             # Only show summary for portfolio page
             if page_name != "portfolio":
@@ -209,7 +213,7 @@ class DashboardApplication:
             
             try:
                 portfolio = self.portfolio_service.get_portfolio_snapshot()
-                return self.ui_factory.create_portfolio_summary(portfolio)
+                return self.ui_factory.create_portfolio_summary(portfolio, include_usd=include_usd)
             except Exception as e:
                 self.logger.error(f"Error creating summary: {e}")
                 return html.Div()
@@ -429,38 +433,42 @@ class DashboardApplication:
             [Output("portfolio-dynamic-chart-container", "children"),
             Output("portfolio-dynamic-metrics-container", "children")],
             [Input("portfolio-chart-selector", "value"),
-            Input("portfolio-active-timeframe", "data")],
+            Input("portfolio-active-timeframe", "data"),
+            Input("include-usd-toggle", "value")],
             [State("active-page", "data")],
             prevent_initial_call=True
         )
-        def update_portfolio_chart_and_metrics(chart_type, timeframe, active_page):
+        def update_portfolio_chart_and_metrics(chart_type, timeframe, include_values, active_page):
             """Update portfolio chart and metrics based on selections."""
             if active_page != "portfolio":
                 raise PreventUpdate
-            
+
             try:
                 portfolio = self.portfolio_service.get_portfolio_snapshot()
                 portfolio_page = self.page_factory.create_page("portfolio")
-                
+                include_usd = "include" in (include_values or [])
+
                 if chart_type == "profit":
                     # Use enhanced profit chart with timeframe
                     enhanced_fig = portfolio_page._create_enhanced_profit_chart(
-                        portfolio.tickers, 
+                        portfolio.tickers,
                         "Portfolio Profit History",
-                        timeframe
+                        timeframe,
+                        include_usd=include_usd
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
-                    metrics = portfolio_page._get_profit_metrics(portfolio)
-                    
+                    metrics = portfolio_page._get_profit_metrics(portfolio, include_usd)
+
                 elif chart_type == "yield":
                     # Use enhanced yield chart with timeframe
                     enhanced_fig = portfolio_page._create_enhanced_yield_chart(
                         portfolio,
-                        timeframe
+                        timeframe,
+                        include_usd=include_usd
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
-                    metrics = portfolio_page._get_yield_metrics(portfolio)
-                    
+                    metrics = portfolio_page._get_yield_metrics(portfolio, include_usd)
+
                 else:
                     raise PreventUpdate
                 
@@ -475,6 +483,68 @@ class DashboardApplication:
                     })
                 ])
                 return error_content, html.Div()
+        
+        # USD/EUR toggle state callback
+        @self.app.callback(
+            Output("usd-toggle-state", "data"),
+            Input("include-usd-toggle", "value"),
+            prevent_initial_call=True
+        )
+        def update_usd_toggle_state(include_values):
+            """Update USD/EUR toggle state in global store."""
+            return "include" in (include_values or [])
+        
+        # Portfolio tickers table callback
+        @self.app.callback(
+            Output("tickers-table-content", "children"),
+            [Input("usd-toggle-state", "data"),
+             Input("portfolio-tickers-data", "data")],
+            [State("active-page", "data")],
+            prevent_initial_call=True
+        )
+        def update_portfolio_tickers_table(include_usd: bool, portfolio_data, active_page):
+            """Update portfolio tickers table based on USD/EUR toggle state."""
+            if active_page != "portfolio" or portfolio_data is None:
+                raise PreventUpdate
+            
+            # Reconstruct tickers from stored data
+            from models.portfolio import TickerData, PerformanceMetrics
+            import pandas as pd
+            import numpy as np
+            from datetime import datetime
+            
+            tickers = []
+            for ticker_data in portfolio_data["tickers"]:
+                # Create price history with latest price
+                price_df = pd.DataFrame({
+                    'Close': [ticker_data["latest_price"]]
+                }, index=[datetime.now()])
+                
+                # Create minimal TickerData for table display
+                ticker = TickerData(
+                    symbol=ticker_data["symbol"],
+                    price_history=price_df,
+                    dca_history=[ticker_data["average_buy_price"]],
+                    shares_per_day=[ticker_data["total_shares"]],
+                    profit_series=np.array([ticker_data["profit_absolute"]]),
+                    buy_dates=[datetime.now()],  # Dummy date
+                    buy_prices=[ticker_data["average_buy_price"]],
+                    buy_quantities=[ticker_data["total_shares"]],
+                    metrics=PerformanceMetrics(
+                        invested=0,
+                        current_value=ticker_data["current_value"],
+                        profit_absolute=ticker_data["profit_absolute"],
+                        return_percentage=ticker_data["return_percentage"],
+                        average_buy_price=ticker_data["average_buy_price"]
+                    )
+                )
+                tickers.append(ticker)
+            
+            return self.ui_factory.create_tickers_table(
+                tickers=tickers,
+                total_portfolio_value=portfolio_data["total_portfolio_value"],
+                include_usd=include_usd
+            )
         
         # Tickers page callbacks
         @self.app.callback(
@@ -683,57 +753,6 @@ class DashboardApplication:
                 ])
                 return error_content, html.Div()
         
-        # Ticker table USD/EUR filter callback
-        @self.app.callback(
-            Output("tickers-table-content", "children"),
-            [Input("include-usd-toggle", "value")],
-            [State("portfolio-tickers-data", "data")]
-        )
-        def update_tickers_table(include_values, portfolio_data):
-            """Update tickers table based on USD/EUR exclusion toggle."""
-            if portfolio_data is None:
-                raise PreventUpdate
-            
-            include_usd = "include" in (include_values or [])
-            
-            # Reconstruct tickers from stored data
-            from models.portfolio import TickerData, PerformanceMetrics
-            import pandas as pd
-            import numpy as np
-            from datetime import datetime
-            
-            tickers = []
-            for ticker_data in portfolio_data["tickers"]:
-                # Create price history with latest price
-                price_df = pd.DataFrame({
-                    'Close': [ticker_data["latest_price"]]
-                }, index=[datetime.now()])
-                
-                # Create minimal TickerData for table display
-                ticker = TickerData(
-                    symbol=ticker_data["symbol"],
-                    price_history=price_df,
-                    dca_history=[ticker_data["average_buy_price"]],
-                    shares_per_day=[ticker_data["total_shares"]],
-                    profit_series=np.array([ticker_data["profit_absolute"]]),
-                    buy_dates=[datetime.now()],  # Dummy date
-                    buy_prices=[ticker_data["average_buy_price"]],
-                    buy_quantities=[ticker_data["total_shares"]],
-                    metrics=PerformanceMetrics(
-                        invested=0,
-                        current_value=ticker_data["current_value"],
-                        profit_absolute=ticker_data["profit_absolute"],
-                        return_percentage=ticker_data["return_percentage"],
-                        average_buy_price=ticker_data["average_buy_price"]
-                    )
-                )
-                tickers.append(ticker)
-            
-            return self.ui_factory.create_tickers_table(
-                tickers=tickers,
-                total_portfolio_value=portfolio_data["total_portfolio_value"],
-                include_usd=include_usd
-            )
         
     def _create_milestone_inputs(self, count: int, suggestions: list = None) -> list:
         """Δημιουργεί input fields για milestones."""

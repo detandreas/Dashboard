@@ -686,15 +686,15 @@ class DashboardApplication:
         # Ticker table USD/EUR filter callback
         @self.app.callback(
             Output("tickers-table-content", "children"),
-            [Input("exclude-usd-toggle", "value")],
+            [Input("include-usd-toggle", "value")],
             [State("portfolio-tickers-data", "data")]
         )
-        def update_tickers_table(exclude_values, portfolio_data):
+        def update_tickers_table(include_values, portfolio_data):
             """Update tickers table based on USD/EUR exclusion toggle."""
             if portfolio_data is None:
                 raise PreventUpdate
             
-            exclude_usd = "exclude" in (exclude_values or [])
+            include_usd = "include" in (include_values or [])
             
             # Reconstruct tickers from stored data
             from models.portfolio import TickerData, PerformanceMetrics
@@ -732,7 +732,7 @@ class DashboardApplication:
             return self.ui_factory.create_tickers_table(
                 tickers=tickers,
                 total_portfolio_value=portfolio_data["total_portfolio_value"],
-                exclude_usd=exclude_usd
+                include_usd=include_usd
             )
         
     def _create_milestone_inputs(self, count: int, suggestions: list = None) -> list:

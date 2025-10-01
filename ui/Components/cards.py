@@ -1,8 +1,8 @@
 from datetime import datetime
-from dash import html
-from typing import Optional
+from dash import html, dash_table, dcc
+from typing import Optional, List
 
-from models.portfolio import PerformanceMetrics, PortfolioSnapshot
+from models.portfolio import PerformanceMetrics, PortfolioSnapshot, TickerData
 
 
 class CardComponentsMixin:
@@ -137,6 +137,10 @@ class CardComponentsMixin:
 
     def _create_metric_icon(self, icon_type: str, is_positive: Optional[bool], color: str) -> html.Div:
         """Create icon element for metric cards."""
+        if icon_type is None:
+            return html.Div()
+        
+
         if icon_type == "cash":
             return html.Div(className="icon-cash", style={
                 "width": "32px",
@@ -146,6 +150,12 @@ class CardComponentsMixin:
         elif icon_type == "portfolio":
             return html.Div(className="icon-portfolio", style={
                 "width": "32px", 
+                "height": "32px",
+                "margin": "0 auto 5px auto"
+            })
+        elif icon_type == 'bag':
+            return html.Div(className="icon-bag", style={
+                "width": "32px",            
                 "height": "32px",
                 "margin": "0 auto 5px auto"
             })
@@ -159,8 +169,6 @@ class CardComponentsMixin:
                 "height": "32px",
                 "margin": "0 auto 5px auto"
             })
-        else:
-            return html.Div()
 
     def _create_profit_loss_icon(self, is_positive: bool, color: str) -> html.Div:
         """Create professional profit/loss icon."""
@@ -295,26 +303,25 @@ class CardComponentsMixin:
                 self.create_enhanced_metric_card(
                     "Total Trades",
                     str(total_trades),
-                    self.colors["accent"],
+                    self.colors["text_primary"],
                     "portfolio"
                 ),
                 self.create_enhanced_metric_card(
                     "Unique Tickers",
                     str(unique_tickers),
                     self.colors["text_primary"],
-                    "cash"
+                    "bag"
                 ),
                 self.create_enhanced_metric_card(
                     "Total Invested",
                     f"${total_invested:.2f}",
-                    self.colors["green"],
+                    self.colors["text_primary"],
                     "cash"
                 ),
                 self.create_enhanced_metric_card(
                     "Date Range",
                     date_range,
-                    self.colors["text_primary"],
-                    "portfolio"
+                    self.colors["text_primary"]
                 ),
             ],
             style={
@@ -425,4 +432,412 @@ class CardComponentsMixin:
                     style=self.config.ui.card_style,
                 ),
             ]
+        )
+
+    def create_ticker_trade_details(self, total_buy_orders: int, Quantity: int) -> html.Div:
+        """Create trade details card for individual ticker analysis."""
+        return html.Div(
+            [
+                html.H3(
+                    "Trade Details",
+                    style={
+                        "color": self.colors["accent"],
+                        "marginBottom": "20px",
+                        "fontSize": "1.3rem",
+                        "fontWeight": "600",
+                        "textAlign": "center"
+                    },
+                ),
+                html.Div(
+                    [
+                        # Total Buy Orders section
+                        html.Div(
+                            [
+                                html.H6(
+                                    "Total Buy Orders",
+                                    style={
+                                        "color": self.colors["text_secondary"],
+                                        "marginBottom": "10px",
+                                        "fontSize": "0.9rem",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                                html.H4(
+                                    f"{total_buy_orders}",
+                                    style={
+                                        "color": self.colors["text_primary"],
+                                        "margin": "0",
+                                        "fontSize": "1.5rem",
+                                        "fontWeight": "bold",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                            ],
+                            style={
+                                "flex": "1",
+                                "minWidth": "200px",
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "center"
+                            }
+                        ),
+                        # Total Invested section
+                        html.Div(
+                            [
+                                html.H6(
+                                    "Quantity",
+                                    style={
+                                        "color": self.colors["text_secondary"],
+                                        "marginBottom": "10px",
+                                        "fontSize": "0.9rem",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                                html.H4(
+                                    Quantity,
+                                    style={
+                                        "color": self.colors["text_primary"],
+                                        "margin": "0",
+                                        "fontSize": "1.5rem",
+                                        "fontWeight": "bold",
+                                        "textAlign": "center"
+                                    },
+                                ),
+                            ],
+                            style={
+                                "flex": "1",
+                                "minWidth": "200px",
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "center"
+                            }
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "flexWrap": "wrap",
+                        "gap": "30px",
+                    },
+                ),
+            ],
+            style={
+                **self.card_style,
+                "marginBottom": "20px",
+                "padding": "20px",
+            }
+        )
+
+    def create_recent_trade_card(self, date: str, trade_type: str, quantity: float, price: float) -> html.Div:
+        """Create recent trade card for individual ticker analysis."""
+        return html.Div(
+            [
+                html.H3(
+                    "Recent Trade",
+                    style={
+                        "color": self.colors["accent"],
+                        "marginBottom": "20px",
+                        "fontSize": "1.3rem",
+                        "fontWeight": "600",
+                        "textAlign": "center"
+                    },
+                ),
+                html.Div(
+                    [
+                        # Left column - Labels
+                        html.Div(
+                            [
+                                html.Div("Date", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "500"
+                                }),
+                                html.Div("Type", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "500"
+                                }),
+                                html.Div("Quantity", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "500"
+                                }),
+                                html.Div("Price", style={
+                                    "color": self.colors["text_secondary"],
+                                    "fontSize": "1rem",
+                                    "fontWeight": "500"
+                                }),
+                            ],
+                            style={
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "flex-end",
+                                "paddingRight": "50px"
+                            }
+                        ),
+                        # Right column - Values
+                        html.Div(
+                            [
+                                html.Div(date, style={
+                                    "color": self.colors["text_primary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "bold"
+                                }),
+                                html.Div(trade_type, style={
+                                    "color": self.colors["green"] if trade_type.lower() == "buy" else self.colors["red"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "bold"
+                                }),
+                                html.Div(f"{quantity:.2f}", style={
+                                    "color": self.colors["text_primary"],
+                                    "fontSize": "1rem",
+                                    "marginBottom": "15px",
+                                    "fontWeight": "bold"
+                                }),
+                                html.Div(f"${price:.2f}", style={
+                                    "color": self.colors["text_primary"],
+                                    "fontSize": "1rem",
+                                    "fontWeight": "bold"
+                                }),
+                            ],
+                            style={
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "flex-start",
+                                "paddingLeft": "10px"
+                            }
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "justifyContent": "center",
+                        "alignItems": "flex-start",
+                        "gap": "100px",
+                        "padding": "10px 0"
+                    },
+                ),
+            ],
+            style={
+                **self.card_style,
+                "marginBottom": "20px",
+                "padding": "20px",
+            }
+        )
+
+    def create_tickers_table(self, tickers: List[TickerData], total_portfolio_value: float, include_usd: bool = False) -> html.Div:
+        """Create a comprehensive table displaying all traded tickers with their metrics.
+        
+        Args:
+            tickers: List of TickerData objects with trade information
+            total_portfolio_value: Total portfolio value for calculating share percentage
+            exclude_usd: Whether to exclude USD/EUR ticker from the table
+            
+        Returns:
+            html.Div containing the formatted ticker table
+        """
+        # Filter tickers based on exclude_usd flag
+        filtered_tickers = [t for t in tickers if t.has_trades and (include_usd or t.symbol != "USD/EUR")]
+        
+        # Prepare data for table
+        table_data = []
+        for ticker in filtered_tickers:
+            # Calculate share percentage (USD/EUR always shows 0%)
+            if ticker.symbol == "USD/EUR":
+                share_pct = 0.0
+                qty = f"{ticker.total_shares:.2f}"
+            else:
+                share_pct = (ticker.metrics.current_value / total_portfolio_value * 100) if total_portfolio_value > 0 else 0
+                qty = int(ticker.total_shares)
+            
+            table_data.append({
+                "Ticker": ticker.symbol,
+                "Quantity": qty,
+                "Entry Price": f"${ticker.metrics.average_buy_price:.2f}",
+                "Price": f"${ticker.latest_price:.2f}",
+                "Value": f"${ticker.metrics.current_value:.2f}",
+                "Share": f"{share_pct:.2f}%",
+                "Profit": f"${ticker.metrics.profit_absolute:.2f}",
+                "Growth": f"{ticker.metrics.return_percentage:.2f}%",
+                # Hidden columns for conditional formatting
+                "_profit_num": ticker.metrics.profit_absolute,
+                "_growth_num": ticker.metrics.return_percentage,
+            })
+        
+        if not table_data:
+            return html.Div(
+                html.P(
+                    "No tickers with trades found",
+                    style={
+                        "textAlign": "center",
+                        "color": self.colors["text_secondary"],
+                        "padding": "20px"
+                    }
+                ),
+                style=self.card_style
+            )
+        
+        # Define columns (exclude hidden columns from display)
+        display_columns = ["Ticker", "Quantity", "Entry Price", "Price", "Value", "Share", "Profit", "Growth"]
+        
+        table = dash_table.DataTable(
+            columns=[{"name": col, "id": col} for col in display_columns],
+            data=table_data,
+            sort_action="native",
+            style_table={"overflowX": "auto"},
+            style_header={
+                "backgroundColor": self.colors["card_bg"],
+                "color": self.colors["text_primary"],
+                "fontWeight": "bold",
+                "textAlign": "center",
+                "fontSize": "1rem",
+                "padding": "15px"
+            },
+            style_cell={
+                "backgroundColor": self.colors["background"],
+                "color": self.colors["text_primary"],
+                "textAlign": "center",
+                "padding": "14px",
+                "border": f"1px solid {self.colors['grid']}",
+                "fontSize": "0.95rem"
+            },
+            style_data_conditional=[
+                # Positive Profit - green text
+                {
+                    'if': {
+                        'filter_query': '{_profit_num} > 0',
+                        'column_id': 'Profit'
+                    },
+                    'color': self.colors["green"],
+                    'fontWeight': 'bold'
+                },
+                # Negative Profit - red text
+                {
+                    'if': {
+                        'filter_query': '{_profit_num} < 0',
+                        'column_id': 'Profit'
+                    },
+                    'color': self.colors["red"],
+                    'fontWeight': 'bold'
+                },
+                # Positive Growth - green text
+                {
+                    'if': {
+                        'filter_query': '{_growth_num} > 0',
+                        'column_id': 'Growth'
+                    },
+                    'color': self.colors["green"],
+                    'fontWeight': 'bold'
+                },
+                # Negative Growth - red text
+                {
+                    'if': {
+                        'filter_query': '{_growth_num} < 0',
+                        'column_id': 'Growth'
+                    },
+                    'color': self.colors["red"],
+                    'fontWeight': 'bold'
+                },
+                # Ticker column - accent color
+                {
+                    'if': {'column_id': 'Ticker'},
+                    'color': self.colors["accent"],
+                    'fontWeight': 'bold',
+                    'fontSize': '1rem'
+                }
+            ]
+        )
+        
+        return table
+    
+    def create_tickers_table_section(self, tickers: List[TickerData], total_portfolio_value: float) -> html.Div:
+        """Create tickers table section with USD/EUR filter toggle.
+        
+        Args:
+            tickers: List of TickerData objects with trade information
+            total_portfolio_value: Total portfolio value for calculating share percentage
+            
+        Returns:
+            html.Div containing the header, toggle button, and ticker table
+        """
+        return html.Div(
+            [
+                # Header and toggle button row
+                html.Div([
+                    html.H3(
+                        "Portfolio Holdings",
+                        style={
+                            "color": self.colors["accent"],
+                            "fontSize": "1.4rem",
+                            "fontWeight": "600",
+                            "margin": "0"
+                        }
+                    ),
+                    html.Div([
+                        html.Label(
+                            "Include USD/EUR",
+                            style={
+                                "color": self.colors["text_secondary"],
+                                "fontSize": "0.9rem",
+                                "marginRight": "10px"
+                            }
+                        ),
+                        dcc.Checklist(
+                            id="include-usd-toggle",
+                            options=[{"label": "", "value": "include"}],
+                            value=[],
+                            style={
+                                "display": "inline-block"
+                            },
+                            inputStyle={
+                                "marginRight": "0px",
+                                "cursor": "pointer"
+                            },
+                            labelStyle={
+                                "cursor": "pointer"
+                            }
+                        )
+                    ], style={
+                        "display": "flex",
+                        "alignItems": "center"
+                    })
+                ], style={
+                    "display": "flex",
+                    "justifyContent": "space-between",
+                    "alignItems": "center",
+                    "marginBottom": "20px",
+                    "flexWrap": "wrap",
+                    "gap": "15px"
+                }),
+                # Table content (will be updated by callback)
+                html.Div(
+                    id="tickers-table-content",
+                    children=self.create_tickers_table(tickers, total_portfolio_value, include_usd=False)
+                ),
+                # Store for portfolio data
+                dcc.Store(id="portfolio-tickers-data", data={
+                    "tickers": [
+                        {
+                            "symbol": t.symbol,
+                            "has_trades": t.has_trades,
+                            "total_shares": t.total_shares,
+                            "average_buy_price": t.metrics.average_buy_price,
+                            "latest_price": t.latest_price,
+                            "current_value": t.metrics.current_value,
+                            "profit_absolute": t.metrics.profit_absolute,
+                            "return_percentage": t.metrics.return_percentage
+                        } for t in tickers if t.has_trades 
+                    ],
+                    "total_portfolio_value": total_portfolio_value
+                })
+            ],
+            style={
+                **self.card_style,
+                "padding": "25px",
+                "marginBottom": "20px"
+            }
         )

@@ -7,27 +7,34 @@ class LayoutComponentsMixin:
     
     def _create_svg_icon(self, icon_name: str) -> html.Div:
         """Create professional Unicode icon based on icon name."""
-        # Using professional Unicode symbols instead of SVG
-        unicode_icons = {
-            "chart_line": "⟰",      # Trending up arrow
-            "chart_bar": "⊞",       # Square with plus (representing bars)
-            "list": "☰",            # Hamburger menu (list)
-            "dollar": "$",          # Dollar sign
-            "settings": "⚙"         # Gear symbol
-        }
-        
-        return html.Div(
-            unicode_icons.get(icon_name, "⟰"),
-            className="nav-icon",
-            style={
-                "marginRight": "12px", 
-                "display": "flex", 
-                "alignItems": "center",
-                "fontSize": "18px",
-                "color": "white",
-                "fontWeight": "bold"
+        if icon_name == 'settings':
+            return html.Div(className="icon-settings", style={
+                "width": "24px",
+                "height": "24px",
+                          #top right bottom left 
+                "margin": "0 auto 5px auto"
+            })
+        else:
+            # Using professional Unicode symbols instead of SVG
+            unicode_icons = {
+                "chart_line": "⟰",      # Trending up arrow
+                "chart_bar": "⊞",       # Square with plus (representing bars)
+                "list": "☰",            # Hamburger menu (list)
+                "dollar": "$",          # Dollar sign
             }
-        )
+
+            return html.Div(
+                unicode_icons.get(icon_name, "⟰"),
+                className="nav-icon",
+                style={
+                    "marginRight": "12px", 
+                    "display": "flex", 
+                    "alignItems": "center",
+                    "fontSize": "18px",
+                    "color": "white",
+                    "fontWeight": "bold"
+                }
+            )
 
     def create_sidebar(self, nav_items: List[dict]) -> html.Div:
         """Create the sidebar navigation component."""

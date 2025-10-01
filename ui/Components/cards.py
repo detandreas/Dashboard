@@ -254,41 +254,55 @@ class CardComponentsMixin:
             },
         )
 
-    def create_portfolio_summary(self, portfolio: PortfolioSnapshot) -> html.Div:
+    def create_portfolio_summary(self, portfolio: PortfolioSnapshot, include_usd: bool = False) -> html.Div:
         """Create dashboard summary section for the portfolio page."""
+        # Calculate metrics with optional USD/EUR inclusion
+        if include_usd:
+            # Include USD/EUR in calculations
+            equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
+            usd_tickers = [t for t in portfolio.tickers if t.symbol == "USD/EUR"]
+            
+            total_invested = sum(t.metrics.invested for t in equity_tickers)
+            total_current = sum(t.metrics.current_value for t in equity_tickers)
+            total_profit = sum(t.metrics.profit_absolute for t in equity_tickers + usd_tickers)
+        else:
+            # Exclude USD/EUR from calculations (default behavior)
+            total_invested = portfolio.total_metrics.invested
+            total_current = portfolio.total_metrics.current_value
+            total_profit = portfolio.total_metrics.profit_absolute
+        
+        return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0.0
+        is_profitable = total_profit >= 0
+        
         return html.Div(
             [
                 html.Div(
                     [
                         self.create_enhanced_metric_card(
                             "Invested",
-                            f"${portfolio.total_metrics.invested:.2f}",
+                            f"${total_invested:.2f}",
                             self.colors["text_primary"],
                             "cash"
                         ),
                         self.create_enhanced_metric_card(
                             "Portfolio Value",
-                            f"${portfolio.total_metrics.current_value:.2f}",
+                            f"${total_current:.2f}",
                             self.colors["accent"],
                             "portfolio"
                         ),
                         self.create_enhanced_metric_card(
                             "P&L",
-                            f"${portfolio.total_metrics.profit_absolute:.2f}",
-                            self.colors["green"]
-                            if portfolio.total_metrics.is_profitable
-                            else self.colors["red"],
+                            f"${total_profit:.2f}",
+                            self.colors["green"] if is_profitable else self.colors["red"],
                             "profit-loss",
-                            portfolio.total_metrics.is_profitable
+                            is_profitable
                         ),
                         self.create_enhanced_metric_card(
                             "Overall Return",
-                            f"{portfolio.total_metrics.return_percentage:.2f}%",
-                            self.colors["green"]
-                            if portfolio.total_metrics.return_percentage >= 0
-                            else self.colors["red"],
+                            f"{return_pct:.2f}%",
+                            self.colors["green"] if return_pct >= 0 else self.colors["red"],
                             "percentage",
-                            portfolio.total_metrics.return_percentage >= 0
+                            return_pct >= 0
                         ),
                     ],
                     style={"display": "flex", "justifyContent": "center", "flexWrap": "wrap", "gap": "15px"},

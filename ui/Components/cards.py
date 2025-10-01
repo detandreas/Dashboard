@@ -629,7 +629,7 @@ class CardComponentsMixin:
             }
         )
 
-    def create_tickers_table(self, tickers: List[TickerData], total_portfolio_value: float, exclude_usd: bool = False) -> html.Div:
+    def create_tickers_table(self, tickers: List[TickerData], total_portfolio_value: float, include_usd: bool = False) -> html.Div:
         """Create a comprehensive table displaying all traded tickers with their metrics.
         
         Args:
@@ -641,7 +641,7 @@ class CardComponentsMixin:
             html.Div containing the formatted ticker table
         """
         # Filter tickers based on exclude_usd flag
-        filtered_tickers = [t for t in tickers if t.has_trades and (not exclude_usd or t.symbol != "USD/EUR")]
+        filtered_tickers = [t for t in tickers if t.has_trades and (include_usd or t.symbol != "USD/EUR")]
         
         # Prepare data for table
         table_data = []
@@ -779,7 +779,7 @@ class CardComponentsMixin:
                     ),
                     html.Div([
                         html.Label(
-                            "Exclude USD/EUR",
+                            "Include USD/EUR",
                             style={
                                 "color": self.colors["text_secondary"],
                                 "fontSize": "0.9rem",
@@ -787,8 +787,8 @@ class CardComponentsMixin:
                             }
                         ),
                         dcc.Checklist(
-                            id="exclude-usd-toggle",
-                            options=[{"label": "", "value": "exclude"}],
+                            id="include-usd-toggle",
+                            options=[{"label": "", "value": "include"}],
                             value=[],
                             style={
                                 "display": "inline-block"
@@ -816,7 +816,7 @@ class CardComponentsMixin:
                 # Table content (will be updated by callback)
                 html.Div(
                     id="tickers-table-content",
-                    children=self.create_tickers_table(tickers, total_portfolio_value, exclude_usd=False)
+                    children=self.create_tickers_table(tickers, total_portfolio_value, include_usd=False)
                 ),
                 # Store for portfolio data
                 dcc.Store(id="portfolio-tickers-data", data={
@@ -830,7 +830,7 @@ class CardComponentsMixin:
                             "current_value": t.metrics.current_value,
                             "profit_absolute": t.metrics.profit_absolute,
                             "return_percentage": t.metrics.return_percentage
-                        } for t in tickers if t.has_trades
+                        } for t in tickers if t.has_trades 
                     ],
                     "total_portfolio_value": total_portfolio_value
                 })

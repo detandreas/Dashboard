@@ -243,7 +243,7 @@ class StandardCalculationService(PortfolioCalculator):
             # Calculate totals
             total_invested = sum(t.metrics.invested for t in equity_tickers)
             total_current = sum(t.metrics.current_value for t in equity_tickers)
-            total_profit = sum(t.metrics.profit_absolute for t in ticker_data_list)  # Include USD
+            total_profit = sum(t.metrics.profit_absolute for t in equity_tickers)  # Include USD
             
             # Calculate return percentage
             return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0

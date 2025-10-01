@@ -429,38 +429,42 @@ class DashboardApplication:
             [Output("portfolio-dynamic-chart-container", "children"),
             Output("portfolio-dynamic-metrics-container", "children")],
             [Input("portfolio-chart-selector", "value"),
-            Input("portfolio-active-timeframe", "data")],
+            Input("portfolio-active-timeframe", "data"),
+            Input("include-usd-toggle", "value")],
             [State("active-page", "data")],
             prevent_initial_call=True
         )
-        def update_portfolio_chart_and_metrics(chart_type, timeframe, active_page):
+        def update_portfolio_chart_and_metrics(chart_type, timeframe, include_values, active_page):
             """Update portfolio chart and metrics based on selections."""
             if active_page != "portfolio":
                 raise PreventUpdate
-            
+
             try:
                 portfolio = self.portfolio_service.get_portfolio_snapshot()
                 portfolio_page = self.page_factory.create_page("portfolio")
-                
+                include_usd = "include" in (include_values or [])
+
                 if chart_type == "profit":
                     # Use enhanced profit chart with timeframe
                     enhanced_fig = portfolio_page._create_enhanced_profit_chart(
-                        portfolio.tickers, 
+                        portfolio.tickers,
                         "Portfolio Profit History",
-                        timeframe
+                        timeframe,
+                        include_usd=include_usd
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
-                    metrics = portfolio_page._get_profit_metrics(portfolio)
-                    
+                    metrics = portfolio_page._get_profit_metrics(portfolio, include_usd)
+
                 elif chart_type == "yield":
                     # Use enhanced yield chart with timeframe
                     enhanced_fig = portfolio_page._create_enhanced_yield_chart(
                         portfolio,
-                        timeframe
+                        timeframe,
+                        include_usd=include_usd
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
-                    metrics = portfolio_page._get_yield_metrics(portfolio)
-                    
+                    metrics = portfolio_page._get_yield_metrics(portfolio, include_usd)
+
                 else:
                     raise PreventUpdate
                 

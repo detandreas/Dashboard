@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List, Tuple
 import logging
 
-from models.portfolio import Trade, PerformanceMetrics, PortfolioCalculator
+from models.portfolio import Trade, PerformanceMetrics, PortfolioCalculator, PortfolioCalculator, PortfolioSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,55 @@ class StandardCalculationService(PortfolioCalculator):
         except Exception as e:
             logger.error(f"Error calculating profit series: {e}")
             raise
+
+    def calculate_yield_series(self, portfolio: PortfolioSnapshot, include_usd: bool) -> np.ndarray:
+        """Calculate yield series with optional USD/EUR profit inclusion."""
+        invested_series = self.calculate_invested_series(portfolio)
+        if len(invested_series) == 0:
+            return np.array([])
+
+        profit_series = portfolio.total_profit_series(include_usd)
+        if len(profit_series) == 0:
+            return np.array([])
+
+        min_length = min(len(invested_series), len(profit_series))
+        invested_series = invested_series[:min_length]
+        profit_series = profit_series[:min_length]
+
+        yield_values = [
+            (profit / invested * 100) if invested > 0 else 0.0
+            for profit, invested in zip(profit_series, invested_series)
+        ]
+
+        return np.array(yield_values)
+    
+    def calculate_invested_series(self, portfolio: PortfolioSnapshot) -> np.ndarray:
+        """Calculate invested capital series for equity tickers."""
+        equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
+        if not equity_tickers:
+            return np.array([])
+
+        base_dates = None
+        for ticker in equity_tickers:
+            if ticker.has_trades and len(ticker.price_history) > 0:
+                base_dates = ticker.price_history.index
+                break
+
+        if base_dates is None:
+            return np.array([])
+
+        invested_values = []
+        for i, _ in enumerate(base_dates):
+            daily_invested = 0.0
+            for ticker in equity_tickers:
+                if i < len(ticker.dca_history) and i < len(ticker.shares_per_day):
+                    dca_value = ticker.dca_history[i]
+                    if not np.isnan(dca_value):
+                        daily_invested += dca_value * ticker.shares_per_day[i]
+            invested_values.append(daily_invested)
+
+        return np.array(invested_values)
+
     
     def extract_trade_data(self, buy_trades: List[Trade]) -> tuple[List, List, List]:
         """Extract buy trade data for plotting."""
@@ -184,9 +233,9 @@ class StandardCalculationService(PortfolioCalculator):
             logger.error(f"Error finding extrema: {e}")
             raise
     
-    def calculate_profit_analysis_metrics(self, profit_series: np.ndarray, dates: pd.DatetimeIndex, 
+    def calculate_side_metrics(self, data: np.ndarray, dates: pd.DatetimeIndex, 
                                         timeframe: str = "All") -> dict:
-        """Calculate profit analysis metrics including max/min profit with timeframe filtering."""
+        """Calculate side metrics with timeframe filtering."""
         try:
             from datetime import timedelta
             
@@ -208,10 +257,10 @@ class StandardCalculationService(PortfolioCalculator):
                 # Filter data
                 mask = dates >= start_date
                 filtered_dates = dates[mask]
-                filtered_profit = profit_series[mask]
+                filtered_profit = data[mask]
             else:
                 filtered_dates = dates
-                filtered_profit = profit_series
+                filtered_profit = data
             
             if len(filtered_profit) > 0:
                 # Find extrema for the filtered data
@@ -227,11 +276,11 @@ class StandardCalculationService(PortfolioCalculator):
                 'min_profit': min_profit,
                 'max_date': max_date,
                 'min_date': min_date,
-                'current_profit': profit_series[-1] if len(profit_series) > 0 else 0
+                'current_profit': data[-1] if len(data) > 0 else 0
             }
             
         except Exception as e:
-            logger.error(f"Error calculating profit analysis metrics: {e}")
+            logger.error(f"Error calculating side metrics: {e}")
             raise
     
     def calculate_portfolio_metrics(self, ticker_data_list: List) -> PerformanceMetrics:

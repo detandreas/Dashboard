@@ -100,7 +100,7 @@ class PortfolioSnapshot:
     
     def total_profit_series(self, include_usd: bool = False) -> np.ndarray:
         """Calculate total portfolio profit series, considering only tickers with trades on each day.
-        Optionally include USD/EUR tickers."""
+        Optionally incluPde USD/EUR tickers."""
         if not self.tickers:
             return np.array([])
         

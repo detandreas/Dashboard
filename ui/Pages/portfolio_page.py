@@ -320,10 +320,10 @@ class PortfolioPage(BasePage):
         # Generate initial content
         try:
             initial_chart_fig = self._create_enhanced_profit_chart(
-                portfolio.tickers, "Portfolio Profit History", "All"
+                portfolio, portfolio.tickers, "Portfolio Profit History", "All", include_usd=False
             )
             initial_chart = self.ui_factory.create_chart_container(initial_chart_fig)
-            initial_metrics = self._get_profit_metrics(portfolio)
+            initial_metrics = self._get_profit_metrics(portfolio, include_usd=False)
         except Exception as e:
             logger.error(f"Error creating initial portfolio chart: {e}")
             initial_chart = html.Div([
@@ -357,9 +357,9 @@ class PortfolioPage(BasePage):
             stores=stores
         )
     
-    def _get_profit_metrics(self, portfolio: PortfolioSnapshot) -> html.Div:
+    def _get_profit_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> html.Div:
         """Get profit metrics for the side panel."""
-        total_profit = portfolio.total_profit_series
+        total_profit = portfolio.total_profit_series(include_usd)
         if len(total_profit) > 0 and len(portfolio.tickers) > 0:
             # Get dates from the first ticker that has price history
             dates = None
@@ -371,11 +371,12 @@ class PortfolioPage(BasePage):
             if dates is not None and len(dates) == len(total_profit):
                 (max_profit, max_date), (min_profit, min_date) = \
                     self.ui_factory.calculator.find_extrema(total_profit, dates)
-                
+
                 # Current P&L values
-                current_profit = portfolio.total_metrics.profit_absolute
-                current_return = portfolio.total_metrics.return_percentage
+                metrics = self._calculate_portfolio_metrics(portfolio, include_usd)
+                current_profit = metrics["profit_absolute"]
                 profit_color = self.colors["green"] if current_profit >= 0 else self.colors["red"]
+                pnl_label = "Current P&L"
                 
                 # Stacked metrics for right side
                 return html.Div([
@@ -403,10 +404,10 @@ class PortfolioPage(BasePage):
                     ], style={"marginBottom": "15px"}),
                     html.Div([
                         self.ui_factory.create_side_metric_card(
-                            "Current P&L",
+                            pnl_label,
                             f"${current_profit:.2f}",
-                            profit_color,
-                            f"Return: {current_return:.2f}%"
+                            profit_color
+                            
                         )
                     ])
                 ], style={
@@ -428,10 +429,10 @@ class PortfolioPage(BasePage):
             "justifyContent": "center"
         })
     
-    def _get_yield_metrics(self, portfolio: PortfolioSnapshot) -> html.Div:
+    def _get_yield_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> html.Div:
         """Get yield metrics for the side panel."""
-        yield_series = portfolio.portfolio_yield_series
-        
+        yield_series = self._calculate_yield_series(portfolio, include_usd)
+
         if len(yield_series) == 0:
             return html.Div([
                 html.P("No yield data available", style={
@@ -771,7 +772,7 @@ class PortfolioPage(BasePage):
         """Filter data based on selected timeframe."""
         if timeframe == "All" or len(dates) == 0:
             return dates, data_series
-        
+
         end_date = dates[-1]
         
         if timeframe == "1M":
@@ -793,21 +794,97 @@ class PortfolioPage(BasePage):
             filtered_data = np.array(data_series)[mask]
         else:
             filtered_data = data_series[mask]
-        
+
         return filtered_dates, filtered_data
-    
-    def _create_enhanced_profit_chart(self, ticker_data_list, title: str, timeframe: str = "All"):
+
+    def _calculate_portfolio_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> dict:
+        """Calculate dynamic portfolio metrics with optional USD/EUR inclusion."""
+        equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
+        usd_tickers = [t for t in portfolio.tickers if t.symbol == "USD/EUR"] if include_usd else []
+
+        total_invested = sum(t.metrics.invested for t in equity_tickers)
+        total_current = sum(t.metrics.current_value for t in equity_tickers)
+        total_profit = sum(t.metrics.profit_absolute for t in equity_tickers)
+
+        if include_usd and usd_tickers:
+            total_invested += sum(t.metrics.invested for t in usd_tickers)
+            total_current += sum(t.metrics.current_value for t in usd_tickers)
+            total_profit += sum(t.metrics.profit_absolute for t in usd_tickers)
+
+        return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0.0
+
+        return {
+            "invested": total_invested,
+            "current_value": total_current,
+            "profit_absolute": total_profit,
+            "return_percentage": return_pct
+        }
+
+    def _calculate_yield_series(self, portfolio: PortfolioSnapshot, include_usd: bool) -> np.ndarray:
+        """Calculate yield series with optional USD/EUR profit inclusion."""
+        invested_series = self._calculate_invested_series(portfolio)
+        if len(invested_series) == 0:
+            return np.array([])
+
+        profit_series = portfolio.total_profit_series(include_usd)
+        if len(profit_series) == 0:
+            return np.array([])
+
+        min_length = min(len(invested_series), len(profit_series))
+        invested_series = invested_series[:min_length]
+        profit_series = profit_series[:min_length]
+
+        yield_values = [
+            (profit / invested * 100) if invested > 0 else 0.0
+            for profit, invested in zip(profit_series, invested_series)
+        ]
+
+        return np.array(yield_values)
+
+    def _calculate_invested_series(self, portfolio: PortfolioSnapshot) -> np.ndarray:
+        """Calculate invested capital series for equity tickers."""
+        equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
+        if not equity_tickers:
+            return np.array([])
+
+        base_dates = None
+        for ticker in equity_tickers:
+            if ticker.has_trades and len(ticker.price_history) > 0:
+                base_dates = ticker.price_history.index
+                break
+
+        if base_dates is None:
+            return np.array([])
+
+        invested_values = []
+        for i, _ in enumerate(base_dates):
+            daily_invested = 0.0
+            for ticker in equity_tickers:
+                if i < len(ticker.dca_history) and i < len(ticker.shares_per_day):
+                    dca_value = ticker.dca_history[i]
+                    if not np.isnan(dca_value):
+                        daily_invested += dca_value * ticker.shares_per_day[i]
+            invested_values.append(daily_invested)
+
+        return np.array(invested_values)
+
+    def _create_enhanced_profit_chart(self, portfolio : PortfolioSnapshot, ticker_data_list, title: str, timeframe: str = "All", include_usd: bool = False):
         """Create enhanced profit chart with timeframe filtering and different view modes."""
         try:
             fig = go.Figure()
-            
-            if ticker_data_list and ticker_data_list[0].price_history is not None:
-                dates = ticker_data_list[0].price_history.index
-                total_profit = sum(ticker.profit_series for ticker in ticker_data_list)
-                
+
+            dates = None
+            for ticker in ticker_data_list:
+                if ticker.has_trades and len(ticker.price_history) > 0:
+                    dates = ticker.price_history.index
+                    break
+
+            if dates is not None:
+                total_profit = portfolio.total_profit_series(include_usd)
+
                 # Apply timeframe filter
                 filtered_dates, filtered_profit = self._filter_data_by_timeframe(dates, total_profit, timeframe)
-                
+
                 if len(filtered_dates) == 0:
                     return go.Figure().update_layout(
                         title="No data available for selected timeframe",
@@ -873,6 +950,12 @@ class PortfolioPage(BasePage):
                 )
                 
             
+            else:
+                return go.Figure().update_layout(
+                    title="No profit data available",
+                    template="plotly_dark"
+                )
+
             # Enhanced layout
             fig.update_layout(
                 height=500,
@@ -918,11 +1001,11 @@ class PortfolioPage(BasePage):
                 template="plotly_dark"
             )
     
-    def _create_enhanced_yield_chart(self, portfolio: PortfolioSnapshot, timeframe: str = "All"):
+    def _create_enhanced_yield_chart(self, portfolio: PortfolioSnapshot, timeframe: str = "All", include_usd: bool = False):
         """Create enhanced yield chart with timeframe filtering."""
         try:
-            yield_series = portfolio.portfolio_yield_series
-            
+            yield_series = self._calculate_yield_series(portfolio, include_usd)
+
             if len(yield_series) == 0:
                 return go.Figure().update_layout(
                     title="No yield data available",

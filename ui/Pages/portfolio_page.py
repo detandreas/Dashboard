@@ -71,216 +71,6 @@ class PortfolioPage(BasePage):
             logger.error(f"Error rendering portfolio page: {e}")
             return self._create_error_message(str(e))
     
-    def _create_profit_section(self, portfolio: PortfolioSnapshot) -> html.Div:
-        """Create profit analysis section with metrics above the chart."""
-        profit_chart = self.ui_factory.create_profit_chart(
-            portfolio.tickers, 
-            "Portfolio Profit History"
-        )
-        
-        # Add extrema information - use proper profit series calculation
-        total_profit = portfolio.total_profit_series
-        if len(total_profit) > 0 and len(portfolio.tickers) > 0:
-            # Get dates from the first ticker that has price history
-            dates = None
-            for ticker in portfolio.tickers:
-                if ticker.has_trades and len(ticker.price_history) > 0:
-                    dates = ticker.price_history.index
-                    break
-            
-            if dates is not None and len(dates) == len(total_profit):
-                (max_profit, max_date), (min_profit, min_date) = \
-                    self.ui_factory.calculator.find_extrema(total_profit, dates)
-                
-                # Current P&L values
-                current_profit = portfolio.total_metrics.profit_absolute
-                current_return = portfolio.total_metrics.return_percentage
-                profit_color = self.colors["green"] if current_profit >= 0 else self.colors["red"]
-                
-                # Metrics above chart: Maximum Profit, Minimum Profit, Current P&L
-                profit_metrics = html.Div([
-                    self.ui_factory.create_metric_card(
-                        "Maximum Profit",
-                        f"${max_profit:.2f}",
-                        self.colors["green"],
-                        f"on {max_date.strftime('%d %b %Y')}"
-                    ),
-                    self.ui_factory.create_metric_card(
-                        "Minimum Profit",
-                        f"${min_profit:.2f}",
-                        self.colors["red"],
-                        f"on {min_date.strftime('%d %b %Y')}"
-                    ),
-                    self.ui_factory.create_metric_card(
-                        "Current P&L",
-                        f"${current_profit:.2f}",
-                        profit_color,
-                        f"Return: {current_return:.2f}%"
-                    )
-                ], style={
-                    "display": "flex",
-                    "justifyContent": "center",
-                    "flexWrap": "wrap",
-                    "marginBottom": "20px"
-                })
-            else:
-                profit_metrics = html.Div([
-                    html.P("Unable to calculate profit metrics - date mismatch", style={
-                        "textAlign": "center",
-                        "color": self.colors["text_secondary"]
-                    })
-                ])
-        else:
-            profit_metrics = html.Div([
-                html.P("No profit data available", style={
-                    "textAlign": "center",
-                    "color": self.colors["text_secondary"]
-                })
-            ])
-        
-        return html.Div([
-            profit_metrics,
-            self.ui_factory.create_chart_container(profit_chart)
-        ])
-    
-    def _create_yield_section(self, portfolio: PortfolioSnapshot) -> html.Div:
-        """Create yield analysis section."""
-        yield_series = portfolio.portfolio_yield_series
-        
-        if len(yield_series) == 0:
-            return html.Div([
-                html.H4("Portfolio Yield", style={
-                    "textAlign": "center",
-                    "color": self.colors["text_secondary"]
-                }),
-                html.P("No yield data available", style={
-                    "textAlign": "center",
-                    "color": self.colors["text_secondary"]
-                })
-            ])
-        
-        # Get dates from equity tickers that have price history
-        dates = None
-        for ticker in portfolio.equity_tickers:
-            if ticker.has_trades and len(ticker.price_history) > 0:
-                dates = ticker.price_history.index
-                break
-        
-        # Fallback to any ticker with price history
-        if dates is None:
-            for ticker in portfolio.tickers:
-                if ticker.has_trades and len(ticker.price_history) > 0:
-                    dates = ticker.price_history.index
-                    break
-        
-        if dates is None or len(dates) != len(yield_series):
-            return html.Div([
-                html.H4("Portfolio Yield", style={
-                    "textAlign": "center",
-                    "color": self.colors["text_secondary"]
-                }),
-                html.P("Unable to calculate yield - insufficient data", style={
-                    "textAlign": "center",
-                    "color": self.colors["text_secondary"]
-                })
-            ])
-        
-        (max_yield, max_date), (min_yield, min_date) = \
-            self.ui_factory.calculator.find_extrema(yield_series, dates)
-        
-        # Create yield chart
-        fig = go.Figure([
-            go.Scatter(
-                x=dates,
-                y=yield_series,
-                name="Portfolio Yield",
-                line=dict(width=3, color=self.colors["accent"]),
-                hovertemplate='<b>Portfolio Yield</b><br>' +
-                             'Date: %{x|%d %b %Y}<br>' +
-                             'Yield: %{y:.2f}%<extra></extra>'
-            ),
-            go.Scatter(
-                x=[max_date], y=[max_yield],
-                mode="markers", name="Maximum Yield",
-                marker=dict(size=14, color=self.colors["green"]),
-                hovertemplate='<b>Maximum Yield</b><br>' +
-                             'Date: %{x|%d %b %Y}<br>' +
-                             'Yield: %{y:.2f}%<extra></extra>'
-            ),
-            go.Scatter(
-                x=[min_date], y=[min_yield],
-                mode="markers", name="Minimum Yield",
-                marker=dict(size=14, color=self.colors["red"]),
-                hovertemplate='<b>Minimum Yield</b><br>' +
-                             'Date: %{x|%d %b %Y}<br>' +
-                             'Yield: %{y:.2f}%<extra></extra>'
-            )
-        ])
-        
-        # Add zero line
-        fig.add_shape(
-            type="line",
-            x0=dates[0], x1=dates[-1],
-            y0=0, y1=0,
-            line=dict(color="white", width=1, dash="dot")
-        )
-        
-        fig.update_layout(
-            height=500,
-            template="plotly_dark",
-            title={
-                "text": "Portfolio Yield Percentage",
-                "font": {"size": 20, "color": self.colors["text_primary"]},
-                "y": 0.95, "x": 0.5, "xanchor": "center", "yanchor": "top"
-            },
-            xaxis_title="Date",
-            yaxis_title="Yield (%)",
-            legend={
-                "orientation": "h",
-                "yanchor": "bottom", "y": 1.02,
-                "xanchor": "center", "x": 0.5
-            },
-            yaxis=dict(
-                dtick=self.config.market.portfolio_yield_tick,
-                showgrid=True, gridcolor=self.colors["grid"]
-            ),
-            xaxis=dict(showgrid=True, gridcolor=self.colors["grid"]),
-            plot_bgcolor=self.colors["card_bg"],
-            paper_bgcolor=self.colors["card_bg"],
-            font=dict(color=self.colors["text_primary"]),
-            hovermode="x unified"
-        )
-        
-        # Yield summary cards
-        yield_cards = html.Div([
-            self.ui_factory.create_metric_card(
-                "Maximum Yield",
-                f"{max_yield:.2f}%",
-                self.colors["green"],
-                f"on {max_date.strftime('%d %b %Y')}"
-            ),
-            self.ui_factory.create_metric_card(
-                "Minimum Yield",
-                f"{min_yield:.2f}%",
-                self.colors["red"],
-                f"on {min_date.strftime('%d %b %Y')}"
-            ),
-            self.ui_factory.create_metric_card(
-                "Current Yield",
-                f"{yield_series[-1]:.2f}%",
-                self.colors["green"] if yield_series[-1] >= 0 else self.colors["red"]
-            )
-        ], style={
-            "display": "flex",
-            "justifyContent": "center",
-            "flexWrap": "wrap",
-            "marginBottom": "20px"
-        })
-        
-        return html.Div([
-            yield_cards,
-            self.ui_factory.create_chart_container(fig)
-        ])
     
     def _create_goal_section(self, portfolio: PortfolioSnapshot) -> html.Div:
         """Δημιουργεί το goal progress section."""
@@ -369,12 +159,13 @@ class PortfolioPage(BasePage):
                     break
             
             if dates is not None and len(dates) == len(total_profit):
-                (max_profit, max_date), (min_profit, min_date) = \
-                    self.ui_factory.calculator.find_extrema(total_profit, dates)
-
+                side_metrics = self.ui_factory.calculator.calculate_side_metrics(total_profit, dates)
+                max_profit = side_metrics["max_profit"]
+                max_date = side_metrics["max_date"]
+                min_profit = side_metrics["min_profit"]
+                min_date = side_metrics["min_date"]
                 # Current P&L values
-                metrics = self._calculate_portfolio_metrics(portfolio, include_usd)
-                current_profit = metrics["profit_absolute"]
+                current_profit = side_metrics["current_profit"]
                 profit_color = self.colors["green"] if current_profit >= 0 else self.colors["red"]
                 pnl_label = "Current P&L"
                 
@@ -431,7 +222,7 @@ class PortfolioPage(BasePage):
     
     def _get_yield_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> html.Div:
         """Get yield metrics for the side panel."""
-        yield_series = self._calculate_yield_series(portfolio, include_usd)
+        yield_series = self.ui_factory.calculator.calculate_yield_series(portfolio, include_usd)
 
         if len(yield_series) == 0:
             return html.Div([
@@ -820,54 +611,6 @@ class PortfolioPage(BasePage):
             "return_percentage": return_pct
         }
 
-    def _calculate_yield_series(self, portfolio: PortfolioSnapshot, include_usd: bool) -> np.ndarray:
-        """Calculate yield series with optional USD/EUR profit inclusion."""
-        invested_series = self._calculate_invested_series(portfolio)
-        if len(invested_series) == 0:
-            return np.array([])
-
-        profit_series = portfolio.total_profit_series(include_usd)
-        if len(profit_series) == 0:
-            return np.array([])
-
-        min_length = min(len(invested_series), len(profit_series))
-        invested_series = invested_series[:min_length]
-        profit_series = profit_series[:min_length]
-
-        yield_values = [
-            (profit / invested * 100) if invested > 0 else 0.0
-            for profit, invested in zip(profit_series, invested_series)
-        ]
-
-        return np.array(yield_values)
-
-    def _calculate_invested_series(self, portfolio: PortfolioSnapshot) -> np.ndarray:
-        """Calculate invested capital series for equity tickers."""
-        equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
-        if not equity_tickers:
-            return np.array([])
-
-        base_dates = None
-        for ticker in equity_tickers:
-            if ticker.has_trades and len(ticker.price_history) > 0:
-                base_dates = ticker.price_history.index
-                break
-
-        if base_dates is None:
-            return np.array([])
-
-        invested_values = []
-        for i, _ in enumerate(base_dates):
-            daily_invested = 0.0
-            for ticker in equity_tickers:
-                if i < len(ticker.dca_history) and i < len(ticker.shares_per_day):
-                    dca_value = ticker.dca_history[i]
-                    if not np.isnan(dca_value):
-                        daily_invested += dca_value * ticker.shares_per_day[i]
-            invested_values.append(daily_invested)
-
-        return np.array(invested_values)
-
     def _create_enhanced_profit_chart(self, portfolio : PortfolioSnapshot, ticker_data_list, title: str, timeframe: str = "All", include_usd: bool = False):
         """Create enhanced profit chart with timeframe filtering and different view modes."""
         try:
@@ -1004,7 +747,7 @@ class PortfolioPage(BasePage):
     def _create_enhanced_yield_chart(self, portfolio: PortfolioSnapshot, timeframe: str = "All", include_usd: bool = False):
         """Create enhanced yield chart with timeframe filtering."""
         try:
-            yield_series = self._calculate_yield_series(portfolio, include_usd)
+            yield_series = self.ui_factory.calculator.calculate_yield_series(portfolio, include_usd)
 
             if len(yield_series) == 0:
                 return go.Figure().update_layout(

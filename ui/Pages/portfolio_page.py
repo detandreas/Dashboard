@@ -320,7 +320,7 @@ class PortfolioPage(BasePage):
         # Generate initial content
         try:
             initial_chart_fig = self._create_enhanced_profit_chart(
-                portfolio.tickers, "Portfolio Profit History", "All", include_usd=False
+                portfolio, portfolio.tickers, "Portfolio Profit History", "All", include_usd=False
             )
             initial_chart = self.ui_factory.create_chart_container(initial_chart_fig)
             initial_metrics = self._get_profit_metrics(portfolio, include_usd=False)
@@ -359,7 +359,7 @@ class PortfolioPage(BasePage):
     
     def _get_profit_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> html.Div:
         """Get profit metrics for the side panel."""
-        total_profit = self._calculate_combined_profit_series(portfolio.tickers, include_usd)
+        total_profit = portfolio.total_profit_series(include_usd)
         if len(total_profit) > 0 and len(portfolio.tickers) > 0:
             # Get dates from the first ticker that has price history
             dates = None
@@ -797,63 +797,6 @@ class PortfolioPage(BasePage):
 
         return filtered_dates, filtered_data
 
-    def _calculate_combined_profit_series(self, ticker_data_list, include_usd: bool) -> np.ndarray:
-        """Aggregate profit series for selected tickers with optional USD/EUR inclusion."""
-        if not ticker_data_list:
-            return np.array([])
-
-        base_dates = None
-        for ticker in ticker_data_list:
-            if ticker.has_trades and len(ticker.price_history) > 0:
-                base_dates = ticker.price_history.index
-                break
-
-        if base_dates is None:
-            return np.array([])
-
-        total_series = np.zeros(len(base_dates))
-
-        for ticker in ticker_data_list:
-            if len(ticker.price_history) == 0:
-                continue
-
-            is_usd_ticker = ticker.symbol == "USD/EUR"
-            if is_usd_ticker and not include_usd:
-                continue
-
-            if not is_usd_ticker and not ticker.has_trades:
-                continue
-
-            profit_series = ticker.profit_series
-            if len(profit_series) == 0:
-                continue
-
-            if is_usd_ticker:
-                for i in range(min(len(base_dates), len(profit_series))):
-                    total_series[i] += profit_series[i]
-                continue
-
-            trade_dates = sorted(ticker.buy_dates)
-            if not trade_dates:
-                continue
-
-            cumulative_trade_index = 0
-            has_position = False
-
-            for i, date in enumerate(base_dates):
-                if i >= len(profit_series):
-                    break
-
-                while (cumulative_trade_index < len(trade_dates)
-                       and trade_dates[cumulative_trade_index] <= date):
-                    has_position = True
-                    cumulative_trade_index += 1
-
-                if has_position:
-                    total_series[i] += profit_series[i]
-
-        return total_series
-
     def _calculate_portfolio_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> dict:
         """Calculate dynamic portfolio metrics with optional USD/EUR inclusion."""
         equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
@@ -883,7 +826,7 @@ class PortfolioPage(BasePage):
         if len(invested_series) == 0:
             return np.array([])
 
-        profit_series = self._calculate_combined_profit_series(portfolio.tickers, include_usd)
+        profit_series = portfolio.total_profit_series(include_usd)
         if len(profit_series) == 0:
             return np.array([])
 
@@ -925,7 +868,7 @@ class PortfolioPage(BasePage):
 
         return np.array(invested_values)
 
-    def _create_enhanced_profit_chart(self, ticker_data_list, title: str, timeframe: str = "All", include_usd: bool = False):
+    def _create_enhanced_profit_chart(self, portfolio : PortfolioSnapshot, ticker_data_list, title: str, timeframe: str = "All", include_usd: bool = False):
         """Create enhanced profit chart with timeframe filtering and different view modes."""
         try:
             fig = go.Figure()
@@ -937,7 +880,7 @@ class PortfolioPage(BasePage):
                     break
 
             if dates is not None:
-                total_profit = self._calculate_combined_profit_series(ticker_data_list, include_usd)
+                total_profit = portfolio.total_profit_series(include_usd)
 
                 # Apply timeframe filter
                 filtered_dates, filtered_profit = self._filter_data_by_timeframe(dates, total_profit, timeframe)

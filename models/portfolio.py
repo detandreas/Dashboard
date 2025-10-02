@@ -13,7 +13,7 @@ class Trade:
     price: float
     quantity: float
     direction: str
-    
+    #αυτος ο decorator μετατρεπει την μεθοδο σε attribute
     @property
     def is_buy(self) -> bool:
         """Check if this is a buy trade."""
@@ -97,9 +97,10 @@ class PortfolioSnapshot:
         """Get only forex tickers."""
         return [ticker for ticker in self.tickers if ticker.symbol == "USD/EUR"]
     
-    @property
-    def total_profit_series(self) -> np.ndarray:
-        """Calculate total portfolio profit series, considering only tickers with trades on each day."""
+    
+    def total_profit_series(self, include_usd: bool = False) -> np.ndarray:
+        """Calculate total portfolio profit series, considering only tickers with trades on each day.
+        Optionally include USD/EUR tickers."""
         if not self.tickers:
             return np.array([])
         
@@ -116,21 +117,45 @@ class PortfolioSnapshot:
         total_series = np.zeros(len(dates))
         
         for ticker in self.tickers:
-            if not ticker.has_trades or len(ticker.price_history) == 0 or ticker.symbol == "USD/EUR":
+            if not ticker.has_trades or len(ticker.price_history) == 0:
                 continue
                 
-            # Only add profit for days when this ticker had trades
+            is_usd_ticker = ticker.symbol == "USD/EUR"
+            if is_usd_ticker and not include_usd:
+                continue
+
+            if not is_usd_ticker and not ticker.has_trades:
+                continue
+
+            profit_series = ticker.profit_series
+            if len(profit_series) == 0:
+                continue
+
+            if is_usd_ticker:
+                for i in range(min(len(dates), len(profit_series))):
+                    total_series[i] += profit_series[i]
+                continue
+
+            trade_dates = sorted(ticker.buy_dates)
+            if not trade_dates:
+                continue
+
+            cumulative_trade_index = 0
+            has_position = False
+
             for i, date in enumerate(dates):
-                if i < len(ticker.profit_series):
-                    # Check if this ticker had any trades before or on this date
-                    ticker_has_trades_by_date = any(
-                        trade_date <= date for trade_date in ticker.buy_dates
-                    )
-                    if ticker_has_trades_by_date:
-                        total_series[i] += ticker.profit_series[i]
-        
+                if i >= len(profit_series):
+                    break
+
+                while (cumulative_trade_index < len(trade_dates)
+                       and trade_dates[cumulative_trade_index] <= date):
+                    has_position = True
+                    cumulative_trade_index += 1
+
+                if has_position:
+                    total_series[i] += profit_series[i]
+
         return total_series
-    
     @property
     def portfolio_yield_series(self) -> np.ndarray:
         """Calculate portfolio yield percentage series."""

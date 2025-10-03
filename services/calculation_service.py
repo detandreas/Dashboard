@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from typing import List, Tuple
 import logging
+from datetime import timedelta
 
 from models.portfolio import Trade, PerformanceMetrics, PortfolioCalculator, PortfolioCalculator, PortfolioSnapshot
 
@@ -311,46 +312,24 @@ class StandardCalculationService(PortfolioCalculator):
                                         timeframe: str = "All") -> dict:
         """Calculate side metrics with timeframe filtering."""
         try:
-            from datetime import timedelta
+            # Use the centralized filter method
+            filtered_dates, filtered_value = self.filter_data_by_timeframe(dates, data, timeframe)
             
-            # Apply timeframe filter if needed
-            if timeframe != "All" and len(dates) > 0:
-                end_date = dates[-1]
-                
-                if timeframe == "1M":
-                    start_date = end_date - timedelta(days=30)
-                elif timeframe == "3M":
-                    start_date = end_date - timedelta(days=90)
-                elif timeframe == "6M":
-                    start_date = end_date - timedelta(days=180)
-                elif timeframe == "1Y":
-                    start_date = end_date - timedelta(days=365)
-                else:
-                    start_date = dates[0]
-                
-                # Filter data
-                mask = dates >= start_date
-                filtered_dates = dates[mask]
-                filtered_profit = data[mask]
-            else:
-                filtered_dates = dates
-                filtered_profit = data
-            
-            if len(filtered_profit) > 0:
+            if len(filtered_value) > 0:
                 # Find extrema for the filtered data
-                (max_profit, max_date), (min_profit, min_date) = self.find_extrema(
-                    filtered_profit, filtered_dates
+                (max_value, max_date), (min_value, min_date) = self.find_extrema(
+                    filtered_value, filtered_dates
                 )
             else:
-                max_profit = min_profit = 0
+                max_value = min_value = 0
                 max_date = min_date = None
             
             return {
-                'max_profit': max_profit,
-                'min_profit': min_profit,
+                'max_value': max_value,
+                'min_value': min_value,
                 'max_date': max_date,
                 'min_date': min_date,
-                'current_profit': data[-1] if len(data) > 0 else 0
+                'current_value': data[-1] if len(data) > 0 else 0
             }
             
         except Exception as e:
@@ -438,3 +417,33 @@ class StandardCalculationService(PortfolioCalculator):
             trades_df_copy = trades_df.copy()
             trades_df_copy['P&L'] = 0.0
             return trades_df_copy
+    
+    def filter_data_by_timeframe(self, dates, data_series, timeframe: str):
+        """Filter data based on selected timeframe."""
+        if timeframe == "All" or len(dates) == 0:
+            return dates, data_series
+
+        end_date = dates[-1]
+        
+        if timeframe == "1M":
+            start_date = end_date - timedelta(days=30)
+        elif timeframe == "3M":
+            start_date = end_date - timedelta(days=90)
+        elif timeframe == "6M":
+            start_date = end_date - timedelta(days=180)
+        elif timeframe == "1Y":
+            start_date = end_date - timedelta(days=365)
+        else:
+            return dates, data_series
+        
+        # Filter dates and corresponding data
+        mask = dates >= start_date
+        filtered_dates = dates[mask]
+        
+        if isinstance(data_series, (list, np.ndarray)):
+            filtered_data = np.array(data_series)[mask]
+        else:
+            filtered_data = data_series[mask]
+
+        return filtered_dates, filtered_data
+

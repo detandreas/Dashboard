@@ -147,7 +147,7 @@ class PortfolioPage(BasePage):
             stores=stores
         )
     
-    def _get_profit_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> html.Div:
+    def _get_profit_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool, timeframe: str = "All") -> html.Div:
         """Get profit metrics for the side panel."""
         total_profit = self.portfolio_service.get_total_profit_series(include_usd)
         if len(total_profit) > 0 and len(portfolio.tickers) > 0:
@@ -159,13 +159,13 @@ class PortfolioPage(BasePage):
                     break
             
             if dates is not None and len(dates) == len(total_profit):
-                side_metrics = self.ui_factory.calculator.calculate_side_metrics(total_profit, dates)
-                max_profit = side_metrics["max_profit"]
+                side_metrics = self.ui_factory.calculator.calculate_side_metrics(total_profit, dates, timeframe)
+                max_profit = side_metrics["max_value"]
                 max_date = side_metrics["max_date"]
-                min_profit = side_metrics["min_profit"]
+                min_profit = side_metrics["min_value"]
                 min_date = side_metrics["min_date"]
                 # Current P&L values
-                current_profit = side_metrics["current_profit"]
+                current_profit = side_metrics["current_value"]
                 profit_color = self.colors["green"] if current_profit >= 0 else self.colors["red"]
                 pnl_label = "Current P&L"
                 
@@ -181,7 +181,7 @@ class PortfolioPage(BasePage):
                         self.ui_factory.create_side_metric_card(
                             "Maximum Profit",
                             f"${max_profit:.2f}",
-                            self.colors["green"],
+                            self.colors["green"] if max_profit >= 0 else self.colors["red"],
                             f"on {max_date.strftime('%d %b %Y')}"
                         )
                     ], style={"marginBottom": "15px"}),
@@ -189,7 +189,7 @@ class PortfolioPage(BasePage):
                         self.ui_factory.create_side_metric_card(
                             "Minimum Profit",
                             f"${min_profit:.2f}",
-                            self.colors["red"],
+                            self.colors["red"] if min_profit < 0 else self.colors["green"],
                             f"on {min_date.strftime('%d %b %Y')}"
                         )
                     ], style={"marginBottom": "15px"}),
@@ -220,7 +220,7 @@ class PortfolioPage(BasePage):
             "justifyContent": "center"
         })
     
-    def _get_yield_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> html.Div:
+    def _get_yield_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool, timeframe: str = "All") -> html.Div:
         """Get yield metrics for the side panel."""
         yield_series = self.ui_factory.calculator.calculate_yield_series(portfolio, include_usd)
 
@@ -264,8 +264,14 @@ class PortfolioPage(BasePage):
                 "justifyContent": "center"
             })
         
-        (max_yield, max_date), (min_yield, min_date) = \
-            self.ui_factory.calculator.find_extrema(yield_series, dates)
+        side_metrics = \
+            self.ui_factory.calculator.calculate_side_metrics(yield_series, dates, timeframe)
+        
+        max_yield = side_metrics["max_value"]
+        min_yield = side_metrics["min_value"]
+        max_date = side_metrics["max_date"]
+        min_date = side_metrics["min_date"]
+        current_yield = side_metrics["current_value"]
         
         # Stacked yield metrics for right side
         return html.Div([
@@ -279,7 +285,7 @@ class PortfolioPage(BasePage):
                 self.ui_factory.create_side_metric_card(
                     "Maximum Yield",
                     f"{max_yield:.2f}%",
-                    self.colors["green"],
+                    self.colors["green"] if max_yield >= 0 else self.colors["red"],
                     f"on {max_date.strftime('%d %b %Y')}"
                 )
             ], style={"marginBottom": "15px"}),
@@ -287,7 +293,7 @@ class PortfolioPage(BasePage):
                 self.ui_factory.create_side_metric_card(
                     "Minimum Yield",
                     f"{min_yield:.2f}%",
-                    self.colors["red"],
+                    self.colors["red"] if min_yield < 0 else self.colors["green"],
                     f"on {min_date.strftime('%d %b %Y')}"
                 )
             ], style={"marginBottom": "15px"}),
@@ -305,58 +311,7 @@ class PortfolioPage(BasePage):
             "justifyContent": "space-evenly"
         })
     
-    def _filter_data_by_timeframe(self, dates, data_series, timeframe: str):
-        """Filter data based on selected timeframe."""
-        if timeframe == "All" or len(dates) == 0:
-            return dates, data_series
-
-        end_date = dates[-1]
-        
-        if timeframe == "1M":
-            start_date = end_date - timedelta(days=30)
-        elif timeframe == "3M":
-            start_date = end_date - timedelta(days=90)
-        elif timeframe == "6M":
-            start_date = end_date - timedelta(days=180)
-        elif timeframe == "1Y":
-            start_date = end_date - timedelta(days=365)
-        else:
-            return dates, data_series
-        
-        # Filter dates and corresponding data
-        mask = dates >= start_date
-        filtered_dates = dates[mask]
-        
-        if isinstance(data_series, (list, np.ndarray)):
-            filtered_data = np.array(data_series)[mask]
-        else:
-            filtered_data = data_series[mask]
-
-        return filtered_dates, filtered_data
-
-    def _calculate_portfolio_metrics(self, portfolio: PortfolioSnapshot, include_usd: bool) -> dict:
-        """Calculate dynamic portfolio metrics with optional USD/EUR inclusion."""
-        equity_tickers = [t for t in portfolio.tickers if t.symbol != "USD/EUR"]
-        usd_tickers = [t for t in portfolio.tickers if t.symbol == "USD/EUR"] if include_usd else []
-
-        total_invested = sum(t.metrics.invested for t in equity_tickers)
-        total_current = sum(t.metrics.current_value for t in equity_tickers)
-        total_profit = sum(t.metrics.profit_absolute for t in equity_tickers)
-
-        if include_usd and usd_tickers:
-            total_invested += sum(t.metrics.invested for t in usd_tickers)
-            total_current += sum(t.metrics.current_value for t in usd_tickers)
-            total_profit += sum(t.metrics.profit_absolute for t in usd_tickers)
-
-        return_pct = (total_profit / total_invested * 100) if total_invested > 0 else 0.0
-
-        return {
-            "invested": total_invested,
-            "current_value": total_current,
-            "profit_absolute": total_profit,
-            "return_percentage": return_pct
-        }
-
+    
     def _create_enhanced_profit_chart(self, portfolio : PortfolioSnapshot, ticker_data_list, title: str, timeframe: str = "All", include_usd: bool = False):
         """Create enhanced profit chart with timeframe filtering and different view modes."""
         try:
@@ -372,7 +327,7 @@ class PortfolioPage(BasePage):
                 total_profit = self.portfolio_service.get_total_profit_series(include_usd)
 
                 # Apply timeframe filter
-                filtered_dates, filtered_profit = self._filter_data_by_timeframe(dates, total_profit, timeframe)
+                filtered_dates, filtered_profit = self.ui_factory.calculator.filter_data_by_timeframe(dates, total_profit, timeframe)
 
                 if len(filtered_dates) == 0:
                     return go.Figure().update_layout(
@@ -521,7 +476,7 @@ class PortfolioPage(BasePage):
                 )
             
             # Apply timeframe filter
-            filtered_dates, filtered_yield = self._filter_data_by_timeframe(dates, yield_series, timeframe)
+            filtered_dates, filtered_yield = self.ui_factory.calculator.filter_data_by_timeframe(dates, yield_series, timeframe)
             
             if len(filtered_dates) == 0:
                 return go.Figure().update_layout(

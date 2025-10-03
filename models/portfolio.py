@@ -135,12 +135,54 @@ class PortfolioCalculator(ABC):
     def calculate_performance_metrics(self, trades: List[Trade], current_price: float) -> PerformanceMetrics:
         """Calculate performance metrics for trades."""
         pass
+
+    @abstractmethod
+    def calculate_yield_series(self, porfolio : PortfolioSnapshot, inculde_usd : bool) -> np.ndarray:
+        """Calculate yield series with optional USD/EUR profit inclusion."""
+        pass
+
+    @abstractmethod
+    def calculate_invested_series(self, portfolio: PortfolioSnapshot) -> np.ndarray:
+        """Calculate invested capital series for equity tickers."""
+        pass
     
     @abstractmethod
     def calculate_profit_series(self, price_data: pd.DataFrame, dca: List[float], shares: List[float]) -> np.ndarray:
-        """Calculate profit progression over time."""
+        """Calculate daily profit progression using the same logic as current P&L.
+        For an individual ticker"""
         pass
     
+    @abstractmethod
+    def calculate_portfolio_profit_series(self, portfolio: PortfolioSnapshot, include_usd: bool = False) -> np.ndarray:
+        """Calculate total portfolio profit series using unified logic."""
+        pass
+
+    @abstractmethod
+    def extract_trade_data(self, buy_trades: List[Trade]) -> tuple[List, List, List]:
+        """Extract buy trade data for plotting."""
+        pass
+
+    @abstractmethod
+    def process_ticker_data(self, ticker: str, trades: List[Trade], price_df) -> dict:
+        """Process all ticker calculations in one place."""
+        pass
+
+    @abstractmethod
+    def calculate_side_metrics(self, data: np.ndarray, dates: pd.DatetimeIndex, 
+                                        timeframe: str = "All") -> dict:
+        """Calculate side metrics with timeframe filtering."""
+        pass
+
+    @abstractmethod
+    def calculate_portfolio_metrics(self, ticker_data_list: List) -> PerformanceMetrics:
+        """Calculate overall portfolio performance metrics."""
+        pass
+
+    @abstractmethod
+    def calculate_trade_pnl(self, trades_df: pd.DataFrame, portfolio_service) -> pd.DataFrame:
+        """Calculate P&L for individual trades based on current market prices."""
+        pass
+
     @abstractmethod
     def find_extrema(self, data: np.ndarray, dates: pd.DatetimeIndex) -> tuple[tuple[float, pd.Timestamp], tuple[float, pd.Timestamp]]:
         """Find maximum and minimum values with their dates."""

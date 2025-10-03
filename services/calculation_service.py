@@ -78,54 +78,20 @@ class StandardCalculationService(PortfolioCalculator):
             logger.error(f"Error calculating performance metrics: {e}")
             raise
     
-    def calculate_profit_series(self, price_data: pd.DataFrame, dca: List[float], shares: List[float], buy_trades: List[Trade] = None) -> np.ndarray:
-        """Calculate daily profit progression using the same logic as current P&L."""
-        try:
-            # Handle empty data case
-            if not dca or not shares:
-                return np.array([0.0] * len(price_data))
-            
-            # Find the first trade date to avoid calculating profit before any trades
-            first_trade_date = None
-            if buy_trades:
-                first_trade_date = min(trade.date for trade in buy_trades)
-            
-            profit_series = []
-            
-            for i, (date, row) in enumerate(price_data.iterrows()):
-                close_price = row['Close']
-                
-                # If we have a first trade date and current date is before it, profit should be 0
-                if first_trade_date and date < first_trade_date:
-                    profit_series.append(0.0)
-                    continue
-                
-                if (i < len(dca) and i < len(shares) and 
-                    not np.isnan(dca[i]) and shares[i] > 0):
-                    # Use the same logic as current P&L: total_shares * current_price - total_invested
-                    # where total_invested = dca[i] * shares[i] (cumulative cost up to this day)
-                    total_invested = dca[i] * shares[i]  # This is the cumulative cost
-                    total_shares = shares[i]  # This is the cumulative shares
-                    current_value = total_shares * close_price
-                    daily_profit = current_value - total_invested
-                    profit_series.append(daily_profit)
-                else:
-                    profit_series.append(0.0)
-            
-            return np.array(profit_series)
-            
-        except Exception as e:
-            logger.error(f"Error calculating profit series: {e}")
-            raise
-
+    
     def calculate_yield_series(self, portfolio: PortfolioSnapshot, include_usd: bool) -> np.ndarray:
         """Calculate yield series with optional USD/EUR profit inclusion."""
         invested_series = self.calculate_invested_series(portfolio)
         if len(invested_series) == 0:
             return np.array([])
+        
+        if include_usd:
+            series_name = "profit_series_with_usd"
+        else:
+            series_name = "profit_series_without_usd"
 
-        profit_series = portfolio.total_profit_series(include_usd)
-        if len(profit_series) == 0:
+        profit_series = portfolio.get_series(series_name)
+        if profit_series is None or len(profit_series) == 0:
             return np.array([])
 
         min_length = min(len(invested_series), len(profit_series))
@@ -165,6 +131,114 @@ class StandardCalculationService(PortfolioCalculator):
             invested_values.append(daily_invested)
 
         return np.array(invested_values)
+    
+    def calculate_profit_series(self, price_data: pd.DataFrame, dca: List[float], shares: List[float], buy_trades: List[Trade] = None) -> np.ndarray:
+        """Calculate daily profit progression using the same logic as current P&L.
+        For an individual ticker"""
+        try:
+            # Handle empty data case
+            if not dca or not shares:
+                return np.array([0.0] * len(price_data))
+            
+            # Find the first trade date to avoid calculating profit before any trades
+            first_trade_date = None
+            if buy_trades:
+                first_trade_date = min(trade.date for trade in buy_trades)
+            
+            profit_series = []
+            
+            for i, (date, row) in enumerate(price_data.iterrows()):
+                close_price = row['Close']
+                
+                # If we have a first trade date and current date is before it, profit should be 0
+                if first_trade_date and date < first_trade_date:
+                    profit_series.append(0.0)
+                    continue
+                
+                if (i < len(dca) and i < len(shares) and 
+                    not np.isnan(dca[i]) and shares[i] > 0):
+                    # Use the same logic as current P&L: total_shares * current_price - total_invested
+                    # where total_invested = dca[i] * shares[i] (cumulative cost up to this day)
+                    total_invested = dca[i] * shares[i]  # This is the cumulative cost
+                    total_shares = shares[i]  # This is the cumulative shares
+                    current_value = total_shares * close_price
+                    daily_profit = current_value - total_invested
+                    profit_series.append(daily_profit)
+                else:
+                    profit_series.append(0.0)
+            print(profit_series[-1])
+            return np.array(profit_series)
+            
+        except Exception as e:
+            logger.error(f"Error calculating profit series: {e}")
+            raise
+
+    def calculate_portfolio_profit_series(self, portfolio: PortfolioSnapshot, include_usd: bool = False) -> np.ndarray:
+        """Calculate total portfolio profit series using unified logic."""
+        try:
+            if not portfolio.tickers:
+                return np.array([])
+            
+            # Get the date range from the first ticker that has price history
+            dates = None
+            for ticker in portfolio.tickers:
+                if ticker.has_trades and len(ticker.price_history) > 0:
+                    dates = ticker.price_history.index
+                    break
+            
+            if dates is None:
+                return np.array([])
+            
+            total_series = np.zeros(len(dates))
+            
+            for ticker in portfolio.tickers:
+                if not ticker.has_trades or len(ticker.price_history) == 0:
+                    continue
+                    
+                is_usd_ticker = ticker.symbol == "USD/EUR"
+                if is_usd_ticker and not include_usd:
+                    continue
+
+                if not is_usd_ticker and not ticker.has_trades:
+                    continue
+
+                # Use the existing profit_series from ticker (calculated by calculate_profit_series)
+                profit_series = ticker.profit_series
+                if len(profit_series) == 0:
+                    continue
+
+                if is_usd_ticker:
+                    # For USD tickers, add all profit values
+                    for i in range(min(len(dates), len(profit_series))):
+                        total_series[i] += profit_series[i]
+                    continue
+
+                # For equity tickers, only add profit after first trade
+                trade_dates = sorted(ticker.buy_dates)
+                if not trade_dates:
+                    continue
+
+                cumulative_trade_index = 0
+                has_position = False
+
+                for i, date in enumerate(dates):
+                    if i >= len(profit_series):
+                        break
+
+                    # Check if we have a position on this date
+                    while (cumulative_trade_index < len(trade_dates)
+                           and trade_dates[cumulative_trade_index] <= date):
+                        has_position = True
+                        cumulative_trade_index += 1
+
+                    if has_position:
+                        total_series[i] += profit_series[i]
+            
+            return total_series
+            
+        except Exception as e:
+            logger.error(f"Error calculating portfolio profit series: {e}")
+            raise
 
     
     def extract_trade_data(self, buy_trades: List[Trade]) -> tuple[List, List, List]:

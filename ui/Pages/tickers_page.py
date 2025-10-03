@@ -373,7 +373,7 @@ class TickersPage(BasePage):
                     x=dates,
                     y=profit_series,
                     name=f"{ticker_data.symbol} Profit",
-                    fill='tonexty' if min(profit_series) < 0 else 'tozeroy',
+                    fill='tonexty' if profit_series.min() < 0 else 'tozeroy',
                     fillcolor='rgba(99, 102, 241, 0.2)',
                     line=dict(width=3, color=self.colors["accent"]),
                     hovertemplate='<b>Profit</b><br>'
@@ -621,7 +621,7 @@ class TickersPage(BasePage):
         dates = ticker_data.price_history.index
         profit_series = ticker_data.profit_series
         
-        profit_analysis = self.ui_factory.calculator.calculate_profit_analysis_metrics(
+        profit_analysis = self.ui_factory.calculator.calculate_side_metrics(
             profit_series, dates, timeframe
         )
         

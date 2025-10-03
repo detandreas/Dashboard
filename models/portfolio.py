@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -86,6 +86,12 @@ class PortfolioSnapshot:
     timestamp: datetime
     tickers: List[TickerData]
     total_metrics: PerformanceMetrics
+
+    # Προσθήκη: Cached series για απόδοση
+    series: Dict[str, np.ndarray] = field(default_factory=dict)
+    # χρησιμοποιουμε το field ωστε καθε αντικειμενο PortfolioSnapshot να έχει τα series του
+    #και να μην μοιραζεται κοινα series μεταξυ των αντικειμενων
+    #διαφορετικα η series θα ηταν static attribute
     
     @property
     def equity_tickers(self) -> List[TickerData]:
@@ -97,102 +103,13 @@ class PortfolioSnapshot:
         """Get only forex tickers."""
         return [ticker for ticker in self.tickers if ticker.symbol == "USD/EUR"]
     
+    def get_series(self, series_name: str) -> Optional[np.ndarray]:
+        """Get cached series by name."""
+        return self.series.get(series_name)
     
-    def total_profit_series(self, include_usd: bool = False) -> np.ndarray:
-        """Calculate total portfolio profit series, considering only tickers with trades on each day.
-        Optionally incluPde USD/EUR tickers."""
-        if not self.tickers:
-            return np.array([])
-        
-        # Get the date range from the first ticker that has price history
-        dates = None
-        for ticker in self.tickers:
-            if ticker.has_trades and len(ticker.price_history) > 0:
-                dates = ticker.price_history.index
-                break
-        
-        if dates is None:
-            return np.array([])
-        
-        total_series = np.zeros(len(dates))
-        
-        for ticker in self.tickers:
-            if not ticker.has_trades or len(ticker.price_history) == 0:
-                continue
-                
-            is_usd_ticker = ticker.symbol == "USD/EUR"
-            if is_usd_ticker and not include_usd:
-                continue
-
-            if not is_usd_ticker and not ticker.has_trades:
-                continue
-
-            profit_series = ticker.profit_series
-            if len(profit_series) == 0:
-                continue
-
-            if is_usd_ticker:
-                for i in range(min(len(dates), len(profit_series))):
-                    total_series[i] += profit_series[i]
-                continue
-
-            trade_dates = sorted(ticker.buy_dates)
-            if not trade_dates:
-                continue
-
-            cumulative_trade_index = 0
-            has_position = False
-
-            for i, date in enumerate(dates):
-                if i >= len(profit_series):
-                    break
-
-                while (cumulative_trade_index < len(trade_dates)
-                       and trade_dates[cumulative_trade_index] <= date):
-                    has_position = True
-                    cumulative_trade_index += 1
-
-                if has_position:
-                    total_series[i] += profit_series[i]
-
-        return total_series
-    @property
-    def portfolio_yield_series(self) -> np.ndarray:
-        """Calculate portfolio yield percentage series."""
-        if not self.equity_tickers:
-            return np.array([])
-        
-        profit_series = self.total_profit_series
-        invested_series = self._calculate_invested_series()
-        
-        yield_series = []
-        for i, (profit, invested) in enumerate(zip(profit_series, invested_series)):
-            if invested > 0:
-                yield_series.append(profit / invested * 100)
-            else:
-                yield_series.append(0.0)
-        
-        return np.array(yield_series)
-    
-    def _calculate_invested_series(self) -> List[float]:
-        """Calculate daily invested amount series for equity tickers."""
-        if not self.equity_tickers:
-            return []
-        
-        # Use the first ticker's date range
-        dates = self.equity_tickers[0].price_history.index
-        invested_series = []
-        
-        for i in range(len(dates)):
-            daily_invested = sum(
-                ticker.dca_history[i] * ticker.shares_per_day[i]
-                for ticker in self.equity_tickers
-                if i < len(ticker.dca_history) and i < len(ticker.shares_per_day)
-                and not np.isnan(ticker.dca_history[i])
-            )
-            invested_series.append(daily_invested)
-        
-        return invested_series
+    def set_series(self, series_name: str, data: np.ndarray):
+        """Set cached series."""
+        self.series[series_name] = data
     
     def get_ticker_by_symbol(self, symbol: str) -> Optional[TickerData]:
         """Get ticker data by symbol."""
@@ -200,6 +117,11 @@ class PortfolioSnapshot:
             if ticker.symbol == symbol:
                 return ticker
         return None
+    
+    def clear_series_cache(self):
+        """Clear all cached series."""
+        self.series.clear()
+
 
 class PortfolioCalculator(ABC):
     """Abstract base for portfolio calculations."""

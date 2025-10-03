@@ -451,13 +451,14 @@ class DashboardApplication:
                 if chart_type == "profit":
                     # Use enhanced profit chart with timeframe
                     enhanced_fig = portfolio_page._create_enhanced_profit_chart(
+                        portfolio,
                         portfolio.tickers,
                         "Portfolio Profit History",
                         timeframe,
                         include_usd=include_usd
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
-                    metrics = portfolio_page._get_profit_metrics(portfolio, include_usd)
+                    metrics = portfolio_page._get_profit_metrics(portfolio, include_usd, timeframe)
 
                 elif chart_type == "yield":
                     # Use enhanced yield chart with timeframe
@@ -467,7 +468,7 @@ class DashboardApplication:
                         include_usd=include_usd
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
-                    metrics = portfolio_page._get_yield_metrics(portfolio, include_usd)
+                    metrics = portfolio_page._get_yield_metrics(portfolio, include_usd, timeframe)
 
                 else:
                     raise PreventUpdate

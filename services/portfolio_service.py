@@ -1,6 +1,7 @@
 from typing import Dict, List
 import logging
 from datetime import datetime
+import numpy as np
 
 from models.portfolio import Trade, TickerData, PortfolioSnapshot, PerformanceMetrics
 from services.data_service import DataServiceInterface
@@ -61,6 +62,7 @@ class PortfolioService:
                 tickers=ticker_data_list,
                 total_metrics=total_metrics
             )
+            self._calculate_and_cache_series(snapshot)
             
             logger.info(f"Portfolio snapshot built with {len(ticker_data_list)} tickers")
             return snapshot
@@ -69,6 +71,36 @@ class PortfolioService:
             logger.error(f"Error building portfolio snapshot: {e}")
             raise
     
+    def _calculate_and_cache_series(self, snapshot: PortfolioSnapshot):
+        """Calculate and cache all portfolio series."""
+        try:
+            # Calculate profit series (με και χωρίς USD)
+            profit_series_with_usd = self.calculator.calculate_portfolio_profit_series(snapshot, include_usd=True)
+            profit_series_without_usd = self.calculator.calculate_portfolio_profit_series(snapshot, include_usd=False)
+
+            # Calculate invested series
+            invested_series = self.calculator.calculate_invested_series(snapshot)
+
+            # Cache profit and invested series FIRST
+            snapshot.set_series("profit_series_with_usd", profit_series_with_usd)
+            snapshot.set_series("profit_series_without_usd", profit_series_without_usd)
+            snapshot.set_series("invested_series", invested_series)
+
+            # Calculate yield series AFTER caching the required series
+            yield_series_with_usd = self.calculator.calculate_yield_series(snapshot, include_usd=True)
+            yield_series_without_usd = self.calculator.calculate_yield_series(snapshot, include_usd=False)
+
+            # Cache yield series
+            snapshot.set_series("yield_series_with_usd", yield_series_with_usd)
+            snapshot.set_series("yield_series_without_usd", yield_series_without_usd)
+
+            logger.debug("All portfolio series calculated and cached")
+
+        except Exception as e:
+            logger.error(f"Error calculating portfolio series: {e}")
+            raise
+
+
     def _group_trades_by_ticker(self, trades: List[Trade]) -> Dict[str, List[Trade]]:
         """Group trades by ticker symbol."""
         trades_by_ticker = {}
@@ -130,3 +162,23 @@ class PortfolioService:
         except Exception as e:
             logger.error(f"Error getting trades summary: {e}")
             return {"total_trades": 0, "unique_tickers": 0, "buy_trades": 0, "sell_trades": 0}
+
+    def get_total_profit_series(self, include_usd: bool = False) -> np.ndarray:
+        """Get total portfolio profit series from cache."""
+        snapshot = self.get_portfolio_snapshot()
+        series_name = "profit_series_with_usd" if include_usd else "profit_series_without_usd"
+        series = snapshot.get_series(series_name)
+        return series if series is not None else np.array([])
+
+    def get_invested_series(self) -> np.ndarray:
+        """Get invested capital series from cache."""
+        snapshot = self.get_portfolio_snapshot()
+        series = snapshot.get_series("invested_series")
+        return series if series is not None else np.array([])
+
+    def get_yield_series(self, include_usd: bool = False) -> np.ndarray:
+        """Get yield series from cache."""
+        snapshot = self.get_portfolio_snapshot()
+        series_name = "yield_series_with_usd" if include_usd else "yield_series_without_usd"
+        series = snapshot.get_series(series_name)   
+        return series if series is not None else np.array([])   

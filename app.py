@@ -102,7 +102,7 @@ class DashboardApplication:
             self.ui_factory.create_goal_setup_modal(),
             
             # Hidden store for goal view mode
-            dcc.Store(id="goal-view-mode", data=True),
+            dcc.Store(id="goal-view-mode", data=False),
             
             # Hidden store for USD/EUR toggle state
             dcc.Store(id="usd-toggle-state", data=False)
@@ -360,7 +360,7 @@ class DashboardApplication:
         )
         def toggle_goal_view(toggle_clicks, current_mode, active_page):
             """Εναλλάσσει τον τρόπο προβολής του goal
-            Overall progress <--> Next milestone."""
+            Next milestone <-->  Overall progress."""
             if not toggle_clicks or active_page != "portfolio":
                 raise PreventUpdate
             
@@ -369,7 +369,7 @@ class DashboardApplication:
                 current_value = portfolio.total_metrics.current_value
                 goal_data = self.goal_service.update_milestone_status(current_value)
                 
-                # Toggle the view mode
+                # Toggle the view mode…
                 new_mode = not current_mode
                 goal_data["show_all_milestones"] = new_mode
                 
@@ -469,7 +469,14 @@ class DashboardApplication:
                     )
                     chart = self.ui_factory.create_chart_container(enhanced_fig)
                     metrics = portfolio_page._get_yield_metrics(portfolio, include_usd, timeframe)
-
+                elif chart_type == "value":
+                    enhanced_fig = portfolio_page._create_enhanced_value_chart(
+                        portfolio,
+                        timeframe,
+                        include_usd=include_usd
+                    )
+                    chart = self.ui_factory.create_chart_container(enhanced_fig)
+                    metrics = portfolio_page._get_value_metrics(portfolio, include_usd, timeframe)
                 else:
                     raise PreventUpdate
                 

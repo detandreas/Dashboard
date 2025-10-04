@@ -104,7 +104,8 @@ class GoalService:
             "current_value": current_portfolio_value,
             "final_goal_amount": final_goal["amount"] if final_goal else 0,
             "created_date": goal.get("created_date"),
-            "is_completed": completed_count == total_milestones
+            "is_completed": completed_count == total_milestones,
+            "show_all_milestones": False  # Default to Next Milestone view
         }
     
     def delete_current_goal(self) -> bool:

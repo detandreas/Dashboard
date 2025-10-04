@@ -70,7 +70,8 @@ class PortfolioService:
         except Exception as e:
             logger.error(f"Error building portfolio snapshot: {e}")
             raise
-    
+
+
     def _calculate_and_cache_series(self, snapshot: PortfolioSnapshot):
         """Calculate and cache all portfolio series."""
         try:
@@ -93,6 +94,14 @@ class PortfolioService:
             # Cache yield series
             snapshot.set_series("yield_series_with_usd", yield_series_with_usd)
             snapshot.set_series("yield_series_without_usd", yield_series_without_usd)
+
+            # Calculate portfolio value series AFTER caching profit and invested series
+            portfolio_value_series_with_usd = self.calculator.calculate_portfolio_value_series(snapshot, include_usd=True)
+            portfolio_value_series_without_usd = self.calculator.calculate_portfolio_value_series(snapshot, include_usd=False)
+
+            # Cache portfolio value series
+            snapshot.set_series("portfolio_value_series_with_usd", portfolio_value_series_with_usd)
+            snapshot.set_series("portfolio_value_series_without_usd", portfolio_value_series_without_usd)
 
             logger.debug("All portfolio series calculated and cached")
 
@@ -182,3 +191,10 @@ class PortfolioService:
         series_name = "yield_series_with_usd" if include_usd else "yield_series_without_usd"
         series = snapshot.get_series(series_name)   
         return series if series is not None else np.array([])   
+    
+    def get_portfolio_value_series(self, include_usd: bool = False) -> np.ndarray:
+        """Get portfolio value series from cache."""
+        snapshot = self.get_portfolio_snapshot()
+        series_name = "portfolio_value_series_with_usd" if include_usd else "portfolio_value_series_without_usd"
+        series = snapshot.get_series(series_name)
+        return series if series is not None else np.array([])

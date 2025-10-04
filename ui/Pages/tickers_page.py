@@ -3,6 +3,7 @@ import logging
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import numpy as np
+import pandas as pd
 
 from ui.Pages.base_page import BasePage
 from models.portfolio import TickerData, PortfolioSnapshot
@@ -197,7 +198,7 @@ class TickersPage(BasePage):
         try:
             # Apply timeframe filter
             if timeframe != "All" and ticker_data.price_history is not None:
-                dates, filtered_prices = self._filter_data_by_timeframe(
+                dates, filtered_prices = self.ui_factory.calculator.filter_data_by_timeframe(
                     ticker_data.price_history.index, 
                     ticker_data.price_history["Close"], 
                     timeframe
@@ -205,7 +206,7 @@ class TickersPage(BasePage):
                 
                 # Filter other data accordingly
                 if ticker_data.has_trades and len(ticker_data.dca_history) > 0:
-                    _, filtered_dca = self._filter_data_by_timeframe(
+                    _, filtered_dca = self.ui_factory.calculator.filter_data_by_timeframe(
                         ticker_data.price_history.index,
                         ticker_data.dca_history,
                         timeframe
@@ -278,7 +279,7 @@ class TickersPage(BasePage):
                     
                     filtered_buy_dates = [date for i, date in enumerate(ticker_data.buy_dates) if buy_mask[i]]
                     filtered_buy_prices = [price for i, price in enumerate(ticker_data.buy_prices) if buy_mask[i]]
-                    
+
                     if filtered_buy_dates:
                         fig.add_trace(
                             go.Scatter(
@@ -359,7 +360,7 @@ class TickersPage(BasePage):
             
             # Apply timeframe filter
             if timeframe != "All":
-                dates, profit_series = self._filter_data_by_timeframe(dates, profit_series, timeframe)
+                dates, profit_series = self.ui_factory.calculator.filter_data_by_timeframe(dates, profit_series, timeframe)
             
             # Find extrema for the filtered data
             (max_val, max_date), (min_val, min_date) = self.ui_factory.calculator.find_extrema(
@@ -480,7 +481,7 @@ class TickersPage(BasePage):
             
             # Apply timeframe filter
             if timeframe != "All":
-                dates, volume_series = self._filter_data_by_timeframe(dates, volume_series, timeframe)
+                dates, volume_series = self.ui_factory.calculator.filter_data_by_timeframe(dates, volume_series, timeframe)
             
             fig = go.Figure()
             
@@ -625,10 +626,13 @@ class TickersPage(BasePage):
             profit_series, dates, timeframe
         )
         
-        max_profit = profit_analysis['max_profit']
-        min_profit = profit_analysis['min_profit']
+        max_profit = profit_analysis['max_value']
+        min_profit = profit_analysis['min_value']
         max_date = profit_analysis['max_date']
         min_date = profit_analysis['min_date']
+
+        max_profit_color = self.colors['green'] if max_profit >= 0 else self.colors['red']
+        min_profit_color = self.colors['red'] if min_profit < 0 else self.colors['green']
         
         return html.Div([
             html.H4("Profit Analysis", style={
@@ -649,7 +653,7 @@ class TickersPage(BasePage):
                 self.ui_factory.create_side_metric_card(
                     "Maximum Profit",
                     f"${max_profit:.2f}",
-                    self.colors["green"],
+                    max_profit_color,
                     f"Date: {max_date.strftime('%d %b %Y') if max_date else 'N/A'}"
                 )
             ], style={"marginBottom": "15px"}),
@@ -657,7 +661,7 @@ class TickersPage(BasePage):
                 self.ui_factory.create_side_metric_card(
                     "Minimum Profit",
                     f"${min_profit:.2f}",
-                    self.colors["red"],
+                    min_profit_color,
                     f"Date: {min_date.strftime('%d %b %Y') if min_date else 'N/A'}"
                 )
             ])
@@ -722,35 +726,6 @@ class TickersPage(BasePage):
             "flexDirection": "column",
             "justifyContent": "space-evenly"
         })
-    
-    def _filter_data_by_timeframe(self, dates, data_series, timeframe: str):
-        """Filter data based on selected timeframe."""
-        if timeframe == "All" or len(dates) == 0:
-            return dates, data_series
-        
-        end_date = dates[-1]
-        
-        if timeframe == "1M":
-            start_date = end_date - timedelta(days=30)
-        elif timeframe == "3M":
-            start_date = end_date - timedelta(days=90)
-        elif timeframe == "6M":
-            start_date = end_date - timedelta(days=180)
-        elif timeframe == "1Y":
-            start_date = end_date - timedelta(days=365)
-        else:
-            return dates, data_series
-        
-        # Filter dates and corresponding data
-        mask = dates >= start_date
-        filtered_dates = dates[mask]
-        
-        if isinstance(data_series, (list, np.ndarray)):
-            filtered_data = np.array(data_series)[mask]
-        else:
-            filtered_data = data_series[mask]
-        
-        return filtered_dates, filtered_data
     
     def _create_no_data_message(self, message: str) -> html.Div:
         """Create no data available message."""

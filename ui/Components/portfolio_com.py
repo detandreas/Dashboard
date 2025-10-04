@@ -226,7 +226,7 @@ class PortfolioComponentsMixin:
                 }),
                 html.Div([
                     html.Button(
-                        "Next Milestone", 
+                        "Overall Progress", 
                         id="goal-view-toggle",
                         className="goal-button",
                         style={
@@ -319,7 +319,7 @@ class PortfolioComponentsMixin:
 
     def _create_goal_progress_content(self, goal_data: dict) -> html.Div:
         """Δημιουργεί το περιεχόμενο του goal progress."""
-        show_all = goal_data.get("show_all_milestones", True)
+        show_all = goal_data.get("show_all_milestones", False)
         
         if show_all:
             return self._create_full_progress_view(goal_data)

@@ -167,7 +167,6 @@ class StandardCalculationService(PortfolioCalculator):
                     profit_series.append(daily_profit)
                 else:
                     profit_series.append(0.0)
-            print(profit_series[-1])
             return np.array(profit_series)
             
         except Exception as e:
@@ -239,6 +238,51 @@ class StandardCalculationService(PortfolioCalculator):
             
         except Exception as e:
             logger.error(f"Error calculating portfolio profit series: {e}")
+            raise
+
+    def calculate_portfolio_value_series(self, portfolio: PortfolioSnapshot, include_usd: bool = False) -> np.ndarray:
+        """Calculate total portfolio value series (invested + profit)."""
+        try:
+            if not portfolio.tickers:
+                return np.array([])
+            
+            # Get the date range from the first ticker that has price history
+            dates = None
+            for ticker in portfolio.tickers:
+                if ticker.has_trades and len(ticker.price_history) > 0:
+                    dates = ticker.price_history.index
+                    break
+            
+            if dates is None:
+                return np.array([])
+            
+            # Get invested series
+            invested_series = self.calculate_invested_series(portfolio)
+            if len(invested_series) == 0:
+                return np.array([])
+            
+            # Get profit series
+            if include_usd:
+                series_name = "profit_series_with_usd"
+            else:
+                series_name = "profit_series_without_usd"
+
+            profit_series = portfolio.get_series(series_name)
+            if profit_series is None or len(profit_series) == 0:
+                return np.array([])
+
+            # Ensure both series have the same length
+            min_length = min(len(invested_series), len(profit_series))
+            invested_series = invested_series[:min_length]
+            profit_series = profit_series[:min_length]
+
+            # Portfolio value = invested capital + profit
+            portfolio_value = invested_series + profit_series
+            
+            return portfolio_value
+            
+        except Exception as e:
+            logger.error(f"Error calculating portfolio value series: {e}")
             raise
 
     
@@ -437,8 +481,8 @@ class StandardCalculationService(PortfolioCalculator):
             return dates, data_series
         
         # Filter dates and corresponding data
-        mask = dates >= start_date
-        filtered_dates = dates[mask]
+        mask = dates >= start_date #επιστρεφει boolean ndarray με τις τιμες οπου η ημερομηνια ειναι μεγαλυτερη η ιση της start_date
+        filtered_dates = dates[mask] #κραταει μονο τις ημερομηνιες που το mask ειναι true
         
         if isinstance(data_series, (list, np.ndarray)):
             filtered_data = np.array(data_series)[mask]
@@ -447,3 +491,25 @@ class StandardCalculationService(PortfolioCalculator):
 
         return filtered_dates, filtered_data
 
+    def get_portfolio_dates(self, portfolio: PortfolioSnapshot, equity_only: bool = False) -> pd.DatetimeIndex:
+        """Get common date range from portfolio tickers with price history."""
+        try:
+            tickers_to_check = portfolio.equity_tickers if equity_only else portfolio.tickers
+            
+            for ticker in tickers_to_check:
+                if ticker.has_trades and len(ticker.price_history) > 0:
+                    return ticker.price_history.index
+            
+            # Fallback: check all tickers if equity_only was True
+            if equity_only:
+                for ticker in portfolio.tickers:
+                    if ticker.has_trades and len(ticker.price_history) > 0:
+                        return ticker.price_history.index
+            
+            return pd.DatetimeIndex([])
+            
+        except Exception as e:
+            logger.error(f"Error getting portfolio dates: {e}")
+            return pd.DatetimeIndex([])
+
+    

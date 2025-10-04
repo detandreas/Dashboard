@@ -376,7 +376,6 @@ class CardComponentsMixin:
                     "Last Updated",
                     datetime.now().strftime("%d %b %Y"),
                     self.colors["text_primary"],
-                    "cash"
                 ),
             ],
             style={

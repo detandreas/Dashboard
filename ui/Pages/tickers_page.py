@@ -121,7 +121,8 @@ class TickersPage(BasePage):
                     "color": self.colors["accent"],
                     "marginBottom": "20px",
                     "fontSize": "1.3rem",
-                    "fontWeight": "600"
+                    "fontWeight": "600",
+                    "textAlign": "center"
                 }),
                 dcc.Dropdown(
                     id="ticker-selector",
@@ -174,7 +175,8 @@ class TickersPage(BasePage):
                 {"label": "Profit History", "value": "profit"},
                 {"label": "Volume Analysis", "value": "volume"}
             ],
-            default_chart="price"
+            default_chart="price",
+            width="200px"
         )
         
         timeframe_buttons = self.ui_factory.create_timeframe_buttons("tickers")

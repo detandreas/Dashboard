@@ -132,7 +132,8 @@ class PortfolioPage(BasePage):
                 {"label": "Portfolio Profit History", "value": "profit"},
                 {"label": "Portfolio Yield Percentage", "value": "yield"}
             ],
-            default_chart="value"
+            default_chart="value",
+            width="200px"
         )
         
         timeframe_buttons = self.ui_factory.create_timeframe_buttons("portfolio")

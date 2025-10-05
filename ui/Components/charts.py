@@ -459,23 +459,39 @@ class ChartComponentsMixin:
         chart_id_prefix: str,
         chart_options: List[Dict[str, str]],
         default_chart: str,
-        width: str = "280px"
+        width: str = "280px",
+        position: str = "absolute"
     ) -> html.Div:
         """Δημιουργεί standardized chart selector dropdown."""
+
+        # Define position styles based on position parameter
+        if position == "absolute":
+            position_style = {
+                "position": "absolute",
+                "top": "10px",
+                "left": "10px",
+                "zIndex": "1000"
+            }
+        elif position == "top-right":
+            position_style = {
+                "position": "absolute",
+                "top": "-10px",
+                "right": "5px",
+                "zIndex": "1000"
+            }
         return html.Div([
             dcc.Dropdown(
                 id=f"{chart_id_prefix}-chart-selector",
                 options=chart_options,
                 value=default_chart,
                 className="custom-dropdown chart-selector",
-                style={"width": width}
+                style={"width": width},
+                clearable=False,
+
             )
-        ], style={
-            "position": "absolute",
-            "top": "10px",
-            "left": "10px",
-            "zIndex": "1000"
-        })
+        ], style=position_style
+
+        )
     
     def create_timeframe_buttons(
         self,

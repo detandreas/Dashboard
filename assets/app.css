@@ -256,6 +256,7 @@ body {
     border: 1px solid #333 !important;
     border-radius: 8px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    text-align: center !important;
 }
 
 .custom-dropdown .dash-dropdown:hover {
@@ -266,6 +267,7 @@ body {
 .custom-dropdown .dash-dropdown .dropdown-content {
     color: white !important;
     background-color: transparent !important;
+    text-align: center !important;
 }
 
 .custom-dropdown .dash-dropdown .dropdown-arrow {
@@ -287,6 +289,7 @@ body {
     padding: 12px 16px !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    text-align: center !important;
 }
 
 .custom-dropdown .dash-dropdown-menu .dropdown-item:hover {
@@ -306,6 +309,7 @@ body {
     border-radius: 8px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
     transition: all 0.3s ease !important;
+    text-align: center !important;
 }
 
 .custom-dropdown .Select-control:hover {
@@ -322,15 +326,18 @@ body {
 .custom-dropdown .Select-value-label {
     color: white !important;
     font-weight: 500 !important;
+    text-align: center !important;
 }
 
 .custom-dropdown .Select-arrow-zone {
-    padding-right: 10px !important;
+    display: none !important;
 }
 
 .custom-dropdown .Select-arrow {
-    border-color: #CCCCCC transparent transparent !important;
+    display: none !important;
+    /*border-color: #CCCCCC transparent transparent !important;
     border-width: 5px 5px 2.5px !important;
+    */
 }
 
 .custom-dropdown .Select-menu-outer {
@@ -352,6 +359,7 @@ body {
     padding: 12px 16px !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    text-align: center !important;
 }
 
 .custom-dropdown .Select-option:hover {
@@ -394,6 +402,7 @@ body {
 #timeframe-selector,
 #timeframe-selector * {
     color: white !important;
+    text-align: center !important;
 }
 
 /* Chart controls styling */

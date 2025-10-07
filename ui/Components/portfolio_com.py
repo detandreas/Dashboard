@@ -632,7 +632,7 @@ class PortfolioComponentsMixin:
                         "fontWeight": "bold"
                     }),
                     html.Span(f"${next_milestone['amount']:,}", style={
-                        "color": self.colors["text_secondary"],
+                        "color": self.colors["text_primary"],
                         "fontWeight": "bold",
                         "float": "right"
                     })

@@ -33,4 +33,4 @@ The dashboard features a fixed sidebar with four main sections:
 Each section has a dedicated page header and content area. The sidebar remains visible at all times with clear visual indicators for the active page.
 
 
-Access the dashboard at `http://localhost:8051`.
+Access the dashboard at `https://andreass-investment-dashboard.onrender.com/`.

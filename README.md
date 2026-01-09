@@ -34,3 +34,5 @@ Each section has a dedicated page header and content area. The sidebar remains v
 
 
 Access the dashboard at `https://andreass-investment-dashboard.onrender.com/`.
+
+http://localhost:8051
